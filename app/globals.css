@@ -1,0 +1,13 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Opcional: ajustes base */
+:root {
+  --radius: 12px;
+}
+
+html, body {
+  height: 100%;
+}
