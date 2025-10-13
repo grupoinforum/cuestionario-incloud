@@ -22,7 +22,7 @@ type Payload = {
 /* ========= Env ========= */
 const PD_DOMAIN = process.env.PIPEDRIVE_DOMAIN!;
 const PD_API = process.env.PIPEDRIVE_API_KEY!;
-const PD_PERSON_ROLE_FIELD = process.env.PD_PERSON_ROLE_FIELD; // opcional: campo personalizado
+const PD_PERSON_ROLE_FIELD = process.env.PD_PERSON_ROLE_FIELD;
 
 const BREVO_USER = process.env.BREVO_SMTP_USER;
 const BREVO_PASS = process.env.BREVO_SMTP_PASS;
@@ -38,7 +38,7 @@ const PIPELINES = {
   PA: Number(process.env.PD_PIPELINE_PA ?? 6),
 } as const;
 
-/* ========= Pipedrive: Etapa “Capa 1” por país ========= */
+/* ========= Etapa “Capa 1” por país ========= */
 const STAGE_CAPA1 = {
   GT: Number(process.env.PD_STAGE_GT_CAPA1 ?? 6),
   SV: Number(process.env.PD_STAGE_SV_CAPA1 ?? 7),
@@ -72,11 +72,7 @@ async function pd(path: string, init?: RequestInit) {
   const res = await fetch(url, init);
   const text = await res.text();
   if (!res.ok) throw new Error(`Pipedrive ${path} → ${res.status} ${text}`);
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text as any;
-  }
+  try { return JSON.parse(text); } catch { return text as any; }
 }
 
 function absoluteOriginFromReq(req: Request) {
@@ -98,8 +94,8 @@ function buildEmailBodies(data: Payload, origin: string) {
     : "Gracias por tu diagnóstico – Grupo Inforum";
 
   const lead = qualifies
-    ? "¡Felicidades! Estás a 1 paso de obtener tu asesoría sin costo. Rita Muralles se estará comunicando contigo para agendar una sesión corta de 30min."
-    : "¡Gracias por llenar el cuestionario! Por el momento nuestro equipo se encuentra con cupo lleno. Te estaremos contactando al liberar espacio.";
+    ? "¡Felicidades! Estás a 1 paso de obtener tu asesoría sin costo. Rita Muralles se comunicará contigo para una sesión breve."
+    : "¡Gracias por llenar el cuestionario! Nuestro equipo está con cupo lleno. Te contactaremos al liberar espacio.";
 
   const SITE_URL = "https://www.grupoinforum.com";
   const THUMB_URL = `${origin}/video.png`;
@@ -158,13 +154,12 @@ async function sendEmailConfirmation(data: Payload, req: Request) {
   console.log(`✅ Email enviado a ${data.email}`);
 }
 
-/* ========= Persona en Pipedrive (crear/actualizar con phone + role) ========= */
+/* ========= Persona en Pipedrive ========= */
 async function upsertPersonWithPhoneAndRole(data: Payload) {
   const email = data.email;
   const phone = data.phone?.trim();
   const role = (data.role || "").trim();
 
-  // 1) Buscar por email
   let personId: number | null = null;
   try {
     const search = await pd(`/persons/search?term=${encodeURIComponent(email)}&fields=email&exact_match=true`);
@@ -214,7 +209,7 @@ async function upsertPersonWithPhoneAndRole(data: Payload) {
   }
 }
 
-/* ========= Util: resumen breve de respuestas ========= */
+/* ========= Resumen de respuestas para la nota ========= */
 function briefAnswersSummary(answers?: Payload["answers"]) {
   try {
     const items: Answer[] | undefined = answers?.items;
@@ -229,7 +224,7 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
     };
 
     const lines = items.map((a) => {
-      const baseId = a.id.split(":")[0]; // soporta multi tipo "problemas_infra:valor"
+      const baseId = a.id.split(":")[0]; // soporta 'problemas_infra:valor'
       const k = mapLabel[baseId] || baseId;
       const extra = a.extraText ? ` (${a.extraText})` : "";
       return `- ${k}: ${a.value}${extra} [score=${a.score}]`;
@@ -253,7 +248,7 @@ export async function POST(req: Request) {
     const pipeline_id = PIPELINES[cc];
     const stage_id = STAGE_CAPA1[cc];
 
-    // 1) Persona (buscar o crear) con phone + role
+    // 1) Persona
     const personId = await upsertPersonWithPhoneAndRole(data);
 
     // 2) Organización (opcional)
@@ -296,7 +291,7 @@ export async function POST(req: Request) {
     const dealId = (deal as any)?.data?.id;
     console.log(`🟢 Deal #${dealId} creado en pipeline ${pipeline_id}, stage ${stage_id}`);
 
-    // 4) Nota con contexto
+    // 4) Nota
     try {
       let score2Count: number | undefined;
       try {
@@ -334,11 +329,7 @@ export async function POST(req: Request) {
     }
 
     // 5) Email (no bloqueante)
-    try {
-      await sendEmailConfirmation(data, req);
-    } catch (e) {
-      console.error("[email]", (e as Error).message);
-    }
+    try { await sendEmailConfirmation(data, req); } catch (e) { console.error("[email]", (e as Error).message); }
 
     return NextResponse.json({
       ok: true,
