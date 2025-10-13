@@ -7,29 +7,32 @@ import { useSearchParams } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 /* =========================
+   Tipos de preguntas
+   ========================= */
+type Choice = { value: string; label: string; score: 1 | 2; requiresText?: boolean };
+type QuestionSingle = {
+  id: string;
+  label: string;
+  type: "single";
+  required?: boolean;
+  options: Choice[];
+};
+type QuestionMulti = {
+  id: string;
+  label: string;
+  type: "multi";
+  required?: boolean;
+  maxSelections: number;
+  options: Choice[];
+};
+type Question = QuestionSingle | QuestionMulti;
+
+type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
+
+/* =========================
    PREGUNTAS (5) – NUEVAS
    ========================= */
-
-type Choice = { value: string; label: string; score: 1 | 2; requiresText?: boolean };
-type Question =
-  | {
-      id: string;
-      label: string;
-      type: "single";
-      required?: boolean;
-      options: Choice[];
-    }
-  | {
-      id: string;
-      label: string;
-      type: "multi";
-      required?: boolean;
-      maxSelections: number;
-      options: Choice[];
-    };
-
 const QUESTIONS: readonly Question[] = [
-  // 1) SAP Business One
   {
     id: "usa_sapb1",
     label: "¿Actualmente su empresa utiliza SAP Business One?",
@@ -43,8 +46,6 @@ const QUESTIONS: readonly Question[] = [
       { value: "sin_erp", label: "No usamos ERP", score: 1 },
     ],
   },
-
-  // 2) Administración de servidores
   {
     id: "admin_servidores",
     label: "¿Quién administra actualmente sus servidores?",
@@ -56,14 +57,12 @@ const QUESTIONS: readonly Question[] = [
       { value: "partner_sapb1", label: "Partner SAP Business One", score: 1 },
     ],
   },
-
-  // 3) Problemas de infraestructura (multi hasta 2)
   {
     id: "problemas_infra",
     label: "¿Qué problemas han experimentado con su infraestructura actual? (Puedes seleccionar hasta 2 opciones)",
     type: "multi",
-    maxSelections: 2,
     required: true,
+    maxSelections: 2,
     options: [
       { value: "lentitud_caidas", label: "Lentitud o caídas del sistema", score: 2 },
       { value: "capacidad_rendimiento", label: "Falta de capacidad o rendimiento", score: 2 },
@@ -73,8 +72,6 @@ const QUESTIONS: readonly Question[] = [
       { value: "otro", label: "Otro (especificar)", score: 2, requiresText: true },
     ],
   },
-
-  // 4) Dónde está alojado el ERP
   {
     id: "donde_erp",
     label: "¿Dónde se encuentra actualmente alojado su ERP?",
@@ -86,8 +83,6 @@ const QUESTIONS: readonly Question[] = [
       { value: "nube", label: "En servidores nube", score: 1 },
     ],
   },
-
-  // 5) Objetivo de migración a IaaS
   {
     id: "objetivo_iaas",
     label: "¿Qué busca su empresa lograr con una posible migración a IaaS para su ERP?",
@@ -103,10 +98,8 @@ const QUESTIONS: readonly Question[] = [
   },
 ] as const;
 
-type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
-
 /* =========================
-   PAÍSES / PREFIJOS / REGLAS
+   Países / Teléfono
    ========================= */
 const COUNTRIES = [
   { value: "GT", label: "Guatemala" },
@@ -116,7 +109,6 @@ const COUNTRIES = [
   { value: "DO", label: "República Dominicana" },
   { value: "EC", label: "Ecuador" },
 ] as const;
-
 type CountryValue = typeof COUNTRIES[number]["value"];
 
 const COUNTRY_PREFIX: Record<CountryValue, string> = {
@@ -127,7 +119,6 @@ const COUNTRY_PREFIX: Record<CountryValue, string> = {
   DO: "+1",
   EC: "+593",
 };
-
 const COUNTRY_PHONE_RULES: Record<CountryValue, { min: number; max?: number; note?: string }> = {
   GT: { min: 8 },
   SV: { min: 8 },
@@ -136,55 +127,43 @@ const COUNTRY_PHONE_RULES: Record<CountryValue, { min: number; max?: number; not
   DO: { min: 10 },
   EC: { min: 9, note: "Usa tu número móvil (9 dígitos)" },
 };
-
 const DEFAULT_PREFIX = "+502";
 
 /* =========================
-   EMAIL corporativo simple
+   Email corporativo
    ========================= */
 const FREE_EMAIL_DOMAINS = [
-  "gmail.com",
-  "hotmail.com",
-  "outlook.com",
-  "yahoo.com",
-  "icloud.com",
-  "proton.me",
-  "aol.com",
-  "live.com",
-  "msn.com",
+  "gmail.com", "hotmail.com", "outlook.com", "yahoo.com",
+  "icloud.com", "proton.me", "aol.com", "live.com", "msn.com",
 ];
-
 function isCorporateEmail(email: string) {
   const domain = email.split("@").pop()?.toLowerCase().trim();
-  if (!domain) return false;
-  return !FREE_EMAIL_DOMAINS.includes(domain);
+  return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
 }
 
 /* =========================
-   TEXTOS DE RESULTADO
+   Textos de resultado
    ========================= */
-const SUCCESS_TEXT_FORM = `¡Felicidades! Estás a 1 paso de obtener tu asesoría sin costo. Rita Muralles se estará comunicando contigo para agendar una sesión corta de 30min para presentarnos y realizar unas últimas dudas para guiarte de mejor manera. Acabamos de enviarte un correo con esta información.`;
+const SUCCESS_TEXT_FORM =
+  `¡Felicidades! Estás a 1 paso de obtener tu asesoría sin costo. ` +
+  `Rita Muralles se estará comunicando contigo para agendar una sesión corta de 30min. ` +
+  `Acabamos de enviarte un correo con esta información.`;
 
-const FULL_TEXT_FORM = `¡Gracias por llenar el cuestionario! Por el momento nuestro equipo se encuentra con cupo lleno. Acabamos de enviarte un correo a tu bandeja de entrada para compartirte más información sobre nosotros. Te estaremos contactando al liberar espacio.`;
+const FULL_TEXT_FORM =
+  `¡Gracias por llenar el cuestionario! Por el momento nuestro equipo se encuentra con cupo lleno. ` +
+  `Acabamos de enviarte un correo a tu bandeja de entrada para compartirte más información. ` +
+  `Te estaremos contactando al liberar espacio.`;
 
 /* =========================
-   EVALUACIÓN (regla solicitada)
+   Evaluación (Reglas)
    ========================= */
 function evaluate(finalAnswers: Answer[]) {
   const score1Count = finalAnswers.filter((a) => a.score === 1).length;
   const score2Count = finalAnswers.filter((a) => a.score === 2).length;
 
-  // Reglas:
-  // • ≥ 3 (2)  → califica
-  // • ≥ 3 (1)  → no califica
-  let qualifies = false;
-  if (score2Count >= 3) {
-    qualifies = true;
-  } else if (score1Count >= 3) {
-    qualifies = false;
-  } else {
-    qualifies = false;
-  }
+  // • ≥ 3 (2) → califica
+  // • ≥ 3 (1) → no califica
+  const qualifies = score2Count >= 3 ? true : score1Count >= 3 ? false : false;
 
   const resultText = qualifies ? "Sí califica" : "No hay cupo (exhaustivo)";
   const uiText = qualifies ? SUCCESS_TEXT_FORM : FULL_TEXT_FORM;
@@ -192,7 +171,7 @@ function evaluate(finalAnswers: Answer[]) {
 }
 
 /* =========================
-   API HELPER
+   API helper
    ========================= */
 async function submitDiagnostico(payload: any) {
   const res = await fetch("/api/submit", {
@@ -206,24 +185,23 @@ async function submitDiagnostico(payload: any) {
 }
 
 /* =========================
-   COMPONENTE
+   Componente
    ========================= */
 export default function DiagnosticoContent() {
   const searchParams = useSearchParams();
-
   const [step, setStep] = useState(1);
 
-  // Respuestas: para multi, guardamos cada opción como clave qid:value
+  // Para multi: cada selección se guarda como clave "qid:value"
   const [answers, setAnswers] = useState<Record<string, Answer | undefined>>({});
 
   const [form, setForm] = useState<{
     name: string;
     company: string;
-    role: string; // Cargo en la empresa (obligatorio)
+    role: string;
     email: string;
     country: CountryValue;
     consent: boolean;
-    phoneLocal: string; // parte local SIN prefijo
+    phoneLocal: string;
   }>({
     name: "",
     company: "",
@@ -236,48 +214,40 @@ export default function DiagnosticoContent() {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resultUI, setResultUI] = useState<null | { qualifies: boolean; title: string; message: string }>(null);
+  const [resultUI, setResultUI] =
+    useState<null | { qualifies: boolean; title: string; message: string }>(null);
 
   const utms = useMemo(() => {
     const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
     const x: Record<string, string> = {};
-    keys.forEach((k) => {
-      const v = searchParams.get(k);
-      if (v) x[k] = v;
-    });
+    keys.forEach((k) => { const v = searchParams.get(k); if (v) x[k] = v; });
     return x;
   }, [searchParams]);
 
   const progressPct = useMemo(() => (step / 3) * 100, [step]);
   const barWidth = progressPct + "%";
 
-  /* ========== Helpers de selección ========== */
+  /* ===== Helpers selección multi ===== */
   const isMultiSelected = (qid: string, optValue: string) => !!answers[`${qid}:${optValue}`];
-
   const countMultiSelected = (qid: string) =>
     Object.keys(answers).filter((k) => k.startsWith(`${qid}:`)).length;
-
   const selectedValuesForMulti = (qid: string) =>
     Object.entries(answers)
       .filter(([k]) => k.startsWith(`${qid}:`))
       .map(([, v]) => v?.value)
       .filter(Boolean) as string[];
 
-  /* ========== Handlers ========== */
+  /* ===== Handlers ===== */
   const handleSelect = (qid: string, optionValue: string) => {
-    const q = QUESTIONS.find((q) => q.id === qid)!;
+    const q = QUESTIONS.find((qq) => qq.id === qid)!;
     const opt = q.options.find((o) => o.value === optionValue)!;
-
     if (q.type === "single") {
-      setAnswers((prev) => ({
-        ...prev,
-        [qid]: { id: qid, value: optionValue, score: opt.score as 1 | 2 },
-      }));
+      setAnswers((prev) => ({ ...prev, [qid]: { id: qid, value: optionValue, score: opt.score } }));
     }
   };
 
   const handleToggleMulti = (qid: string, optionValue: string) => {
-    const q = QUESTIONS.find((q) => q.id === qid)!;
+    const q = QUESTIONS.find((qq) => qq.id === qid)! as QuestionMulti | QuestionSingle;
     if (q.type !== "multi") return;
     const opt = q.options.find((o) => o.value === optionValue)!;
     const key = `${qid}:${optionValue}`;
@@ -285,22 +255,20 @@ export default function DiagnosticoContent() {
     setAnswers((prev) => {
       const already = !!prev[key];
       const current = countMultiSelected(qid);
+      const limit = typeof (q as QuestionMulti).maxSelections === "number"
+        ? (q as QuestionMulti).maxSelections
+        : 0;
 
-      // limitar a maxSelections
-      if (!already && q.maxSelections && current >= q.maxSelections) return prev;
+      if (!already && limit > 0 && current >= limit) return prev;
 
       const next = { ...prev };
-      if (already) {
-        delete next[key];
-      } else {
-        next[key] = { id: key, value: optionValue, score: opt.score as 1 | 2 };
-      }
+      if (already) delete next[key];
+      else next[key] = { id: key, value: optionValue, score: opt.score };
       return next;
     });
   };
 
   const handleExtraText = (qid: string, text: string) => {
-    // SINGLE: agregar texto a la opción seleccionada que lo requiera
     const q = QUESTIONS.find((qq) => qq.id === qid);
     if (!q) return;
 
@@ -311,9 +279,9 @@ export default function DiagnosticoContent() {
       return;
     }
 
-    // MULTI: se guarda bajo la opción 'otro'
+    // multi: texto para opción "otro"
     const key = `${qid}:otro`;
-    if (!answers[key]) return; // sólo si ya marcó "Otro"
+    if (!answers[key]) return;
     setAnswers((prev) => ({ ...prev, [key]: { ...prev[key]!, extraText: text } }));
   };
 
@@ -326,7 +294,6 @@ export default function DiagnosticoContent() {
       const selectedOpt = q.options.find((o) => o.value === selected) as any;
       return !!selectedOpt?.requiresText;
     }
-
     const selected = selectedValuesForMulti(qid);
     return q.options.some((o) => selected.includes(o.value) && (o as any).requiresText);
   };
@@ -340,11 +307,10 @@ export default function DiagnosticoContent() {
     });
   }, [answers]);
 
-  /* =========================
-     TELÉFONO con prefijo y reglas
-     ========================= */
-  const selectedPrefix = useMemo(() => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX, [form.country]);
-
+  /* ===== Teléfono ===== */
+  const selectedPrefix = useMemo(
+    () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX, [form.country]
+  );
   const phoneFull = useMemo(() => {
     const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
     return `${selectedPrefix}${local ? " " + local : ""}`;
@@ -353,9 +319,8 @@ export default function DiagnosticoContent() {
   const isPhoneValid = (local: string, country: CountryValue) => {
     const digits = (local || "").replace(/[^\d]/g, "");
     const rule = COUNTRY_PHONE_RULES[country];
-    if (!rule) return digits.length >= 8; // fallback
-    const meetsMin = digits.length >= rule.min;
-    const meetsMax = rule.max ? digits.length <= rule.max : true;
+    const meetsMin = digits.length >= (rule?.min ?? 8);
+    const meetsMax = rule?.max ? digits.length <= rule.max : true;
     return meetsMin && meetsMax;
   };
 
@@ -381,23 +346,17 @@ export default function DiagnosticoContent() {
 
   const onSubmit = async () => {
     setErrorMsg(null);
-    if (!form.consent) {
-      setErrorMsg("Debes aceptar el consentimiento para continuar.");
-      return;
-    }
+    if (!form.consent) { setErrorMsg("Debes aceptar el consentimiento para continuar."); return; }
     setLoading(true);
-
     try {
-      // Construir arreglo final de respuestas (incluye multi)
       const finalAnswers = Object.values(answers).filter(Boolean) as Answer[];
-
       const { score1Count, qualifies, resultText, uiText } = evaluate(finalAnswers);
       const countryLabel = COUNTRIES.find((c) => c.value === form.country)?.label || form.country;
 
       await submitDiagnostico({
         name: form.name,
         company: form.company,
-        role: form.role, // enviar cargo al backend
+        role: form.role,
         email: form.email,
         country: countryLabel,
         phone: phoneFull,
@@ -415,16 +374,13 @@ export default function DiagnosticoContent() {
     }
   };
 
-  /* =========================
-     RESULTADO
-     ========================= */
+  /* ===== Resultado ===== */
   if (resultUI) {
     return (
       <main className="max-w-3xl mx-auto p-6">
         <div className="w-full h-2 bg-gray-200 rounded mb-6">
           <div className="h-2 bg-blue-500 rounded" style={{ width: "100%" }} />
         </div>
-
         <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
         <p className="whitespace-pre-line text-gray-800 leading-relaxed">{resultUI.message}</p>
 
@@ -453,12 +409,10 @@ export default function DiagnosticoContent() {
     );
   }
 
-  /* =========================
-     FORMULARIO
-     ========================= */
+  /* ===== Formularios ===== */
   return (
     <main className="max-w-3xl mx-auto p-6">
-      {/* Barra de progreso */}
+      {/* Progreso */}
       <div className="w-full h-2 bg-gray-200 rounded mb-6">
         <div className="h-2 bg-blue-500 rounded transition-all" style={{ width: barWidth }} />
       </div>
@@ -467,7 +421,7 @@ export default function DiagnosticoContent() {
       <p className="text-gray-600 mb-4">Completa el cuestionario y conoce tu resultado al instante.</p>
       {errorMsg && <p className="text-sm text-red-600 mb-4">{errorMsg}</p>}
 
-      {/* Paso 1: Preguntas */}
+      {/* Paso 1 */}
       {step === 1 && (
         <section className="space-y-6">
           {QUESTIONS.map((q) => (
@@ -493,7 +447,10 @@ export default function DiagnosticoContent() {
                     ))
                   : q.options.map((o) => {
                       const selected = isMultiSelected(q.id, o.value);
-                      const reachedLimit = !selected && q.maxSelections && countMultiSelected(q.id) >= q.maxSelections;
+                      const limit = (q as QuestionMulti).maxSelections ?? 0;
+                      const reachedLimit =
+                        !selected && limit > 0 && countMultiSelected(q.id) >= limit;
+
                       return (
                         <div key={o.value} className="flex items-center gap-3">
                           <input
@@ -507,7 +464,7 @@ export default function DiagnosticoContent() {
                           <label
                             htmlFor={`${q.id}_${o.value}`}
                             className={`cursor-pointer ${reachedLimit ? "opacity-60" : ""}`}
-                            title={reachedLimit ? `Máximo ${q.maxSelections} opciones` : ""}
+                            title={reachedLimit ? `Máximo ${limit} opciones` : ""}
                           >
                             {o.label}
                           </label>
@@ -540,7 +497,7 @@ export default function DiagnosticoContent() {
         </section>
       )}
 
-      {/* Paso 2: Datos */}
+      {/* Paso 2 */}
       {step === 2 && (
         <section className="space-y-4">
           <div>
@@ -551,7 +508,6 @@ export default function DiagnosticoContent() {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
-
           <div>
             <label className="block mb-1">Empresa</label>
             <input
@@ -560,7 +516,6 @@ export default function DiagnosticoContent() {
               onChange={(e) => setForm({ ...form, company: e.target.value })}
             />
           </div>
-
           <div>
             <label className="block mb-1">Cargo en la empresa</label>
             <input
@@ -570,7 +525,6 @@ export default function DiagnosticoContent() {
               placeholder="Ej.: Gerente de TI"
             />
           </div>
-
           <div>
             <label className="block mb-1">Correo empresarial</label>
             <input
@@ -579,11 +533,11 @@ export default function DiagnosticoContent() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             {form.email && !isCorporateEmail(form.email) && (
-              <p className="text-sm text-red-600 mt-1">Usa un correo corporativo (no Gmail/Hotmail/Outlook/Yahoo, etc.).</p>
+              <p className="text-sm text-red-600 mt-1">
+                Usa un correo corporativo (no Gmail/Hotmail/Outlook/Yahoo, etc.).
+              </p>
             )}
           </div>
-
-          {/* País */}
           <div>
             <label className="block mb-1">País</label>
             <select
@@ -598,8 +552,6 @@ export default function DiagnosticoContent() {
               ))}
             </select>
           </div>
-
-          {/* Teléfono con prefijo automático */}
           <div>
             <label className="block mb-1">Teléfono</label>
             <div className="flex">
@@ -609,13 +561,14 @@ export default function DiagnosticoContent() {
               <input
                 className="w-full rounded-r border px-3 py-2"
                 value={form.phoneLocal}
-                onChange={(e) => setForm({ ...form, phoneLocal: e.target.value.replace(/[^\d]/g, "") })}
+                onChange={(e) =>
+                  setForm({ ...form, phoneLocal: e.target.value.replace(/[^\d]/g, "") })
+                }
                 placeholder="Ingresa tu número (solo dígitos)"
                 inputMode="numeric"
                 pattern="\d*"
               />
             </div>
-
             {!isPhoneValid(form.phoneLocal, form.country) && form.phoneLocal.length > 0 ? (
               <p className="text-xs text-red-600 mt-1">{phoneRequirementText}</p>
             ) : (
@@ -640,7 +593,7 @@ export default function DiagnosticoContent() {
         </section>
       )}
 
-      {/* Paso 3: Consentimiento + Enviar */}
+      {/* Paso 3 */}
       {step === 3 && (
         <section className="space-y-4">
           <div className="p-4 rounded-2xl border border-gray-200">
