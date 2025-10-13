@@ -417,7 +417,7 @@ export default function DiagnosticoContent() {
         <div className="h-2 bg-blue-500 rounded transition-all" style={{ width: barWidth }} />
       </div>
 
-      <h1 className="text-2xl font-semibold mb-4">Diagnóstico de Infraestructura para ERP (IaaS)</h1>
+      <h1 className="text-2xl font-semibold mb-4">Diagnóstico de Infraestructura de Servidores</h1>
       <p className="text-gray-600 mb-4">Completa el cuestionario y conoce tu resultado al instante.</p>
       {errorMsg && <p className="text-sm text-red-600 mb-4">{errorMsg}</p>}
 
