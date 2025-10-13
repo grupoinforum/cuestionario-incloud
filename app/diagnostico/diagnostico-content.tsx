@@ -30,7 +30,7 @@ type Question = QuestionSingle | QuestionMulti;
 type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
 
 /* =========================
-   PREGUNTAS (5) – NUEVAS
+   PREGUNTAS (5)
    ========================= */
 const QUESTIONS: readonly Question[] = [
   {
@@ -140,13 +140,6 @@ function isCorporateEmail(email: string) {
   const domain = email.split("@").pop()?.toLowerCase().trim();
   return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
 }
-
-/* =========================
-   Video + Web (para la pantalla final)
-   ========================= */
-const VIDEO_ID = "Eau96xNp3Ds";
-const VIDEO_URL = `https://youtu.be/${VIDEO_ID}`;
-const THUMB_URL = "/video.png";
 
 /* =========================
    Textos de resultado (ACTUALIZADOS)
@@ -393,21 +386,7 @@ export default function DiagnosticoContent() {
         <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
         <p className="whitespace-pre-line text-gray-800 leading-relaxed mb-4">{resultUI.message}</p>
 
-        {/* Video thumbnail */}
-        <a
-          href={VIDEO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block mb-4"
-        >
-          <img
-            src={THUMB_URL}
-            alt="Ver video en YouTube"
-            className="rounded-2xl max-w-full h-auto"
-          />
-        </a>
-
-        {/* Botón a sitio web */}
+        {/* Botón a sitio web (sin video en pantalla) */}
         <div className="mt-1">
           <a
             href="https://www.grupoinforum.com"
