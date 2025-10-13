@@ -142,17 +142,25 @@ function isCorporateEmail(email: string) {
 }
 
 /* =========================
-   Textos de resultado
+   Video + Web (para la pantalla final)
+   ========================= */
+const VIDEO_ID = "Eau96xNp3Ds";
+const VIDEO_URL = `https://youtu.be/${VIDEO_ID}`;
+const THUMB_URL = "/video.png";
+
+/* =========================
+   Textos de resultado (ACTUALIZADOS)
    ========================= */
 const SUCCESS_TEXT_FORM =
-  `¡Felicidades! Estás a 1 paso de obtener tu asesoría sin costo. ` +
-  `Rita Muralles se estará comunicando contigo para agendar una sesión corta de 30min. ` +
+  `¡Gracias por responder el formulario! ` +
+  `Un asesor se estará comunicando contigo en el transcurso del día para poder agendar una sesión de 30 minutos. ` +
   `Acabamos de enviarte un correo con esta información.`;
 
 const FULL_TEXT_FORM =
-  `¡Gracias por llenar el cuestionario! Por el momento nuestro equipo se encuentra con cupo lleno. ` +
-  `Acabamos de enviarte un correo a tu bandeja de entrada para compartirte más información. ` +
-  `Te estaremos contactando al liberar espacio.`;
+  `¡Gracias por responder el formulario! ` +
+  `En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. ` +
+  `De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte. ` +
+  `Acabamos de enviarte un correo con más información.`;
 
 /* =========================
    Evaluación (Reglas)
@@ -165,7 +173,7 @@ function evaluate(finalAnswers: Answer[]) {
   // • ≥ 3 (1) → no califica
   const qualifies = score2Count >= 3 ? true : score1Count >= 3 ? false : false;
 
-  const resultText = qualifies ? "Sí califica" : "No hay cupo (exhaustivo)";
+  const resultText = qualifies ? "Sí califica" : "No califica";
   const uiText = qualifies ? SUCCESS_TEXT_FORM : FULL_TEXT_FORM;
   return { score1Count, qualifies, resultText, uiText };
 }
@@ -381,10 +389,26 @@ export default function DiagnosticoContent() {
         <div className="w-full h-2 bg-gray-200 rounded mb-6">
           <div className="h-2 bg-blue-500 rounded" style={{ width: "100%" }} />
         </div>
-        <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
-        <p className="whitespace-pre-line text-gray-800 leading-relaxed">{resultUI.message}</p>
 
-        <div className="mt-4 flex flex-col gap-3 md:flex-row md:gap-4">
+        <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
+        <p className="whitespace-pre-line text-gray-800 leading-relaxed mb-4">{resultUI.message}</p>
+
+        {/* Video thumbnail */}
+        <a
+          href={VIDEO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mb-4"
+        >
+          <img
+            src={THUMB_URL}
+            alt="Ver video en YouTube"
+            className="rounded-2xl max-w-full h-auto"
+          />
+        </a>
+
+        {/* Botón a sitio web */}
+        <div className="mt-1">
           <a
             href="https://www.grupoinforum.com"
             target="_blank"
@@ -393,17 +417,6 @@ export default function DiagnosticoContent() {
           >
             Visita nuestro website
           </a>
-
-          {resultUI.qualifies && (
-            <a
-              href="https://wa.me/50242170962?text=Hola%2C%20vengo%20del%20diagn%C3%B3stico"
-              className="inline-block px-5 py-3 rounded-2xl bg-blue-600 text-white text-center"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Ir a WhatsApp
-            </a>
-          )}
         </div>
       </main>
     );
