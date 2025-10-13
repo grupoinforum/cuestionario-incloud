@@ -91,11 +91,11 @@ function buildEmailBodies(data: Payload, origin: string) {
 
   const subject = qualifies
     ? "Tu diagnóstico califica – Grupo Inforum"
-    : "Gracias por tu diagnóstico – Grupo Inforum";
+    : "Gracias por completar tu diagnóstico – Grupo Inforum";
 
   const lead = qualifies
-    ? "¡Felicidades! Estás a 1 paso de obtener tu asesoría sin costo. Rita Muralles se comunicará contigo para una sesión breve."
-    : "¡Gracias por llenar el cuestionario! Nuestro equipo está con cupo lleno. Te contactaremos al liberar espacio.";
+    ? "¡Gracias por responder el formulario! Un asesor se estará comunicando contigo en el transcurso del día para poder agendar una sesión de 30 minutos."
+    : "¡Gracias por responder el formulario! En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
 
   const SITE_URL = "https://www.grupoinforum.com";
   const THUMB_URL = `${origin}/video.png`;
@@ -104,7 +104,7 @@ function buildEmailBodies(data: Payload, origin: string) {
 
 Mira el video: ${VIDEO_URL}
 
-Visita nuestro website: ${SITE_URL}`.trim();
+Visita nuestro sitio web: ${SITE_URL}`.trim();
 
   const html = `
 <div style="font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;line-height:1.55;color:#111">
@@ -279,7 +279,7 @@ export async function POST(req: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: `Diagnóstico InCloud – ${data.name}`,
+        title: `Diagnóstico de Infraestructura de Servidores – ${data.name}`,
         person_id: personId!,
         org_id: orgId,
         pipeline_id,
