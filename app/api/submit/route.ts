@@ -59,7 +59,6 @@ function countryToCode(label?: string): keyof typeof PIPELINES {
   const x = label.trim().toUpperCase();
   if (["GT", "SV", "HN", "DO", "EC", "PA"].includes(x)) return x as any;
 
-  // 🔧 IMPORTANTE: claves con espacios/acentos SIEMPRE entre comillas
   const MAP: Record<string, keyof typeof PIPELINES> = {
     "GUATEMALA": "GT",
     "EL SALVADOR": "SV",
@@ -100,10 +99,8 @@ function buildEmailBodies(data: Payload, reqOrigin: string) {
     ? "En base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. Un asesor te estará contactando en un máximo de 48 horas."
     : "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
 
-  // Cache-busting de la miniatura
-  const ASSET_VER = process.env.NEXT_PUBLIC_ASSET_VERSION ?? ""; // ej. 20251015
-  const ver = ASSET_VER ? `?v=${encodeURIComponent(ASSET_VER)}` : "";
-  const THUMB_URL = `${reqOrigin}/video.png${ver}`;
+  // Imagen nueva
+  const THUMB_URL = `${reqOrigin}/video-econsa.png`;
 
   const text = `${copy}
 
@@ -215,7 +212,7 @@ async function upsertPersonWithPhoneAndRole(data: Payload) {
   }
 }
 
-/* ========= Resumen de respuestas para la nota ========= */
+/* ========= Resumen de respuestas ========= */
 function briefAnswersSummary(answers?: Payload["answers"]) {
   try {
     const items: Answer[] | undefined = answers?.items;
@@ -230,7 +227,7 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
     };
 
     const lines = items.map((a) => {
-      const baseId = a.id.split(":")[0]; // soporta 'problemas_infra:valor'
+      const baseId = a.id.split(":")[0];
       const k = mapLabel[baseId] || baseId;
       const extra = a.extraText ? ` (${a.extraText})` : "";
       return `- ${k}: ${a.value}${extra} [score=${a.score}]`;
@@ -250,8 +247,7 @@ function buildResultUI(data: Payload) {
     return {
       title: "¡Gracias por completar el cuestionario!",
       body:
-        "En base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. " +
-        "Un asesor te estará contactando en un máximo de 48 horas.",
+        "En base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. Un asesor te estará contactando en un máximo de 48 horas.",
       ctaLabel: "Visitar nuestro website",
       ctaHref: SITE_URL,
     };
@@ -260,8 +256,7 @@ function buildResultUI(data: Payload) {
   return {
     title: "¡Gracias por completar el cuestionario!",
     body:
-      "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. " +
-      "De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.",
+      "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.",
     ctaLabel: "Visitar nuestro website",
     ctaHref: SITE_URL,
   };
@@ -279,10 +274,10 @@ export async function POST(req: Request) {
     const pipeline_id = PIPELINES[cc];
     const stage_id = STAGE_CAPA1[cc];
 
-    // 1) Persona
+    // Persona
     const personId = await upsertPersonWithPhoneAndRole(data);
 
-    // 2) Organización (opcional)
+    // Organización
     let orgId: number | undefined;
     if (data.company) {
       try {
@@ -304,8 +299,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3) Deal
-    console.log(`[Deals] Creando deal → cc=${cc} pipeline=${pipeline_id} stage=${stage_id}`);
+    // Deal
     const deal = await pd(`/deals`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -320,19 +314,14 @@ export async function POST(req: Request) {
       }),
     });
     const dealId = (deal as any)?.data?.id;
-    console.log(`🟢 Deal #${dealId} creado en pipeline ${pipeline_id}, stage ${stage_id}`);
 
-    // 4) Nota
+    // Nota
     try {
       let score2Count: number | undefined;
-      try {
-        if (Array.isArray(data.answers?.items)) {
-          score2Count = (data.answers.items as Answer[]).filter((a) => a.score === 2).length;
-        }
-      } catch {}
-
+      if (Array.isArray(data.answers?.items)) {
+        score2Count = (data.answers.items as Answer[]).filter((a) => a.score === 2).length;
+      }
       const answersBrief = briefAnswersSummary(data.answers);
-
       const content =
         `Formulario diagnóstico (InCloud)\n` +
         `• Nombre: ${data.name}\n` +
@@ -341,15 +330,8 @@ export async function POST(req: Request) {
         `• Email: ${data.email}\n` +
         (data.country ? `• País: ${data.country}\n` : "") +
         (data.phone ? `• Teléfono: ${data.phone}\n` : "") +
-        (typeof data.qualifies !== "undefined"
-          ? `• Resultado: ${data.qualifies ? "✅ Sí califica" : "❌ No califica"}\n`
-          : "") +
-        (typeof data.resultText !== "undefined" ? `• Evaluación: ${data.resultText}\n` : "") +
-        (typeof data.score1Count !== "undefined" ? `• # de respuestas score=1: ${data.score1Count}\n` : "") +
-        (typeof score2Count !== "undefined" ? `• # de respuestas score=2: ${score2Count}\n` : "") +
-        (answersBrief ? `\nResumen:\n${answersBrief}\n` : "") +
-        (data.answers ? `\nRespuestas (JSON):\n${JSON.stringify(data.answers, null, 2)}` : "");
-
+        (data.qualifies ? "• Resultado: ✅ Sí califica\n" : "• Resultado: ❌ No califica\n") +
+        (answersBrief ? `\nResumen:\n${answersBrief}\n` : "");
       await pd(`/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -359,15 +341,14 @@ export async function POST(req: Request) {
       console.error("[notes POST]", (e as Error).message);
     }
 
-    // 5) Email (no bloqueante)
+    // Email
     try { await sendEmailConfirmation(data, req); } catch (e) { console.error("[email]", (e as Error).message); }
 
-    // 6) Respuesta para UI final (frontend)
+    // UI final
     const ui = buildResultUI(data);
 
     return NextResponse.json({
       ok: true,
-      message: "Deal creado, persona actualizada, nota agregada y correo enviado",
       qualifies: !!data.qualifies,
       ui,
     });
