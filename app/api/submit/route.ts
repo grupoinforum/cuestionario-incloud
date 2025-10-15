@@ -28,6 +28,11 @@ const BREVO_USER = process.env.BREVO_SMTP_USER;
 const BREVO_PASS = process.env.BREVO_SMTP_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM || "Inforum <info@inforumsol.com>";
 
+/* ========= Constantes de sitio / video ========= */
+const SITE_URL = "https://www.grupoinforum.com"; // botón a website (correo y pantalla final)
+const YT_VIDEO_ID = "b_J0E39c-vA";
+const YT_WATCH_URL = `https://www.youtube.com/watch?v=${YT_VIDEO_ID}`;
+
 /* ========= Pipedrive: pipelines por país ========= */
 const PIPELINES = {
   GT: Number(process.env.PD_PIPELINE_GT ?? 1),
@@ -83,34 +88,32 @@ function absoluteOriginFromReq(req: Request) {
 }
 
 /* ========= Email (Brevo + Nodemailer) ========= */
-const VIDEO_ID = "Eau96xNp3Ds";
-const VIDEO_URL = `https://youtu.be/${VIDEO_ID}`;
-
 function buildEmailBodies(data: Payload, origin: string) {
   const qualifies = !!data.qualifies;
 
   const subject = qualifies
-    ? "Tu diagnóstico califica – Grupo Inforum"
-    : "Gracias por completar tu diagnóstico – Grupo Inforum";
+    ? "Tu diagnóstico califica — Grupo Inforum"
+    : "Gracias por completar tu diagnóstico — Grupo Inforum";
 
+  // Mensajes solicitados (correo)
   const lead = qualifies
-    ? "¡Gracias por responder el formulario! Un asesor se estará comunicando contigo en el transcurso del día para poder agendar una sesión de 30 minutos."
-    : "¡Gracias por responder el formulario! En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
+    ? "¡Gracias por completar el cuestionario!\nEn base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. Un asesor te estará contactando en un máximo de 48 horas."
+    : "¡Gracias por completar el cuestionario!\nEn base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
 
-  const SITE_URL = "https://www.grupoinforum.com";
+  // Miniatura para el email (si tienes /public/video.png, se usa como thumbnail clickeable)
   const THUMB_URL = `${origin}/video.png`;
 
   const text = `${lead}
 
-Mira el video: ${VIDEO_URL}
+Mira el video: ${YT_WATCH_URL}
 
 Visita nuestro sitio web: ${SITE_URL}`.trim();
 
   const html = `
 <div style="font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;line-height:1.55;color:#111">
-  <p style="margin:0 0 14px">${lead}</p>
+  <p style="margin:0 0 14px;white-space:pre-line">${lead}</p>
 
-  <a href="${VIDEO_URL}" target="_blank" rel="noopener" style="text-decoration:none;border:0;display:inline-block;margin:6px 0 18px">
+  <a href="${YT_WATCH_URL}" target="_blank" rel="noopener" style="text-decoration:none;border:0;display:inline-block;margin:6px 0 18px">
     <img src="${THUMB_URL}" width="560" style="max-width:100%;height:auto;border:0;display:block;border-radius:12px" alt="Ver video en YouTube" />
   </a>
 
@@ -236,6 +239,31 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
   }
 }
 
+/* ========= UI (pantalla final) ========= */
+function buildResultUI(data: Payload) {
+  const qualifies = !!data.qualifies;
+
+  if (qualifies) {
+    return {
+      title: "¡Gracias por completar el cuestionario!",
+      body:
+        "En base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. " +
+        "Un asesor te estará contactando en un máximo de 48 horas.",
+      ctaLabel: "Visitar nuestro website",
+      ctaHref: SITE_URL,
+    };
+  }
+
+  return {
+    title: "¡Gracias por completar el cuestionario!",
+    body:
+      "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. " +
+      "De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.",
+    ctaLabel: "Visitar nuestro website",
+    ctaHref: SITE_URL,
+  };
+}
+
 /* ========= API ========= */
 export async function POST(req: Request) {
   try {
@@ -331,12 +359,18 @@ export async function POST(req: Request) {
     // 5) Email (no bloqueante)
     try { await sendEmailConfirmation(data, req); } catch (e) { console.error("[email]", (e as Error).message); }
 
+    // 6) Respuesta para UI final (para que el frontend muestre el mensaje correcto y solo botón a website)
+    const ui = buildResultUI(data);
+
     return NextResponse.json({
       ok: true,
       message: "Deal creado, persona actualizada, nota agregada y correo enviado",
+      qualifies: !!data.qualifies,
+      ui, // <- usar esto en el frontend
     });
   } catch (e: any) {
     console.error("[/api/submit] Error:", e?.message || e);
     return NextResponse.json({ ok: false, error: e?.message || "No se logró enviar" }, { status: 500 });
   }
 }
+
