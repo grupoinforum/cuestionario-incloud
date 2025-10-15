@@ -91,9 +91,8 @@ function absoluteOriginFromReq(req: Request) {
 function buildEmailBodies(data: Payload, origin: string) {
   const qualifies = !!data.qualifies;
 
-  const subject = qualifies
-    ? "Tu diagnóstico califica — Grupo Inforum"
-    : "Gracias por completar tu diagnóstico — Grupo Inforum";
+  // 🔹 Asunto fijo para todos los casos
+  const subject = "¡Gracias por completar el cuestionario!";
 
   // Mensajes solicitados (correo)
   const lead = qualifies
@@ -227,7 +226,7 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
     };
 
     const lines = items.map((a) => {
-      const baseId = a.id.split(":")[0]; // soporta 'problemas_infra:valor'
+      const baseId = a.id.split(":")[0];
       const k = mapLabel[baseId] || baseId;
       const extra = a.extraText ? ` (${a.extraText})` : "";
       return `- ${k}: ${a.value}${extra} [score=${a.score}]`;
@@ -359,18 +358,17 @@ export async function POST(req: Request) {
     // 5) Email (no bloqueante)
     try { await sendEmailConfirmation(data, req); } catch (e) { console.error("[email]", (e as Error).message); }
 
-    // 6) Respuesta para UI final (para que el frontend muestre el mensaje correcto y solo botón a website)
+    // 6) Respuesta para UI final
     const ui = buildResultUI(data);
 
     return NextResponse.json({
       ok: true,
       message: "Deal creado, persona actualizada, nota agregada y correo enviado",
       qualifies: !!data.qualifies,
-      ui, // <- usar esto en el frontend
+      ui,
     });
   } catch (e: any) {
     console.error("[/api/submit] Error:", e?.message || e);
     return NextResponse.json({ ok: false, error: e?.message || "No se logró enviar" }, { status: 500 });
   }
 }
-
