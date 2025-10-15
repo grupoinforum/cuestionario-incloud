@@ -142,33 +142,14 @@ function isCorporateEmail(email: string) {
 }
 
 /* =========================
-   Textos de resultado (ACTUALIZADOS)
-   ========================= */
-const SUCCESS_TEXT_FORM =
-  `¡Gracias por responder el formulario! ` +
-  `Un asesor se estará comunicando contigo en el transcurso del día para poder agendar una sesión de 30 minutos. ` +
-  `Acabamos de enviarte un correo con esta información.`;
-
-const FULL_TEXT_FORM =
-  `¡Gracias por responder el formulario! ` +
-  `En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. ` +
-  `De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte. ` +
-  `Acabamos de enviarte un correo con más información.`;
-
-/* =========================
    Evaluación (Reglas)
    ========================= */
 function evaluate(finalAnswers: Answer[]) {
   const score1Count = finalAnswers.filter((a) => a.score === 1).length;
   const score2Count = finalAnswers.filter((a) => a.score === 2).length;
-
-  // • ≥ 3 (2) → califica
-  // • ≥ 3 (1) → no califica
   const qualifies = score2Count >= 3 ? true : score1Count >= 3 ? false : false;
-
   const resultText = qualifies ? "Sí califica" : "No califica";
-  const uiText = qualifies ? SUCCESS_TEXT_FORM : FULL_TEXT_FORM;
-  return { score1Count, qualifies, resultText, uiText };
+  return { score1Count, qualifies, resultText };
 }
 
 /* =========================
@@ -215,8 +196,12 @@ export default function DiagnosticoContent() {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resultUI, setResultUI] =
-    useState<null | { qualifies: boolean; title: string; message: string }>(null);
+  const [resultUI, setResultUI] = useState<null | {
+    title: string;
+    message: string;
+    ctaLabel: string;
+    ctaHref: string;
+  }>(null);
 
   const utms = useMemo(() => {
     const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
@@ -351,10 +336,10 @@ export default function DiagnosticoContent() {
     setLoading(true);
     try {
       const finalAnswers = Object.values(answers).filter(Boolean) as Answer[];
-      const { score1Count, qualifies, resultText, uiText } = evaluate(finalAnswers);
+      const { score1Count, qualifies, resultText } = evaluate(finalAnswers);
       const countryLabel = COUNTRIES.find((c) => c.value === form.country)?.label || form.country;
 
-      await submitDiagnostico({
+      const json = await submitDiagnostico({
         name: form.name,
         company: form.company,
         role: form.role,
@@ -367,7 +352,29 @@ export default function DiagnosticoContent() {
         resultText,
       });
 
-      setResultUI({ qualifies, title: resultText, message: uiText });
+      // Tomar el UI desde el API (route.ts)
+      const ui = json?.ui as
+        | { title: string; body: string; ctaLabel: string; ctaHref: string }
+        | undefined;
+
+      if (ui) {
+        setResultUI({
+          title: ui.title,
+          message: ui.body,
+          ctaLabel: ui.ctaLabel,
+          ctaHref: ui.ctaHref,
+        });
+      } else {
+        // Fallback (por si algo cambia en el backend)
+        setResultUI({
+          title: qualifies ? "¡Gracias por completar el cuestionario!" : "¡Gracias por completar el cuestionario!",
+          message: qualifies
+            ? "Tu empresa es candidata para un cambio hacia servidores en la nube. Un asesor te contactará."
+            : "Según tus respuestas, esta solución no es la adecuada. Visita nuestro sitio para ver otros servicios.",
+          ctaLabel: "Visitar nuestro website",
+          ctaHref: "https://www.grupoinforum.com",
+        });
+      }
     } catch (e: any) {
       setErrorMsg(e?.message || "No se logró enviar. Intenta de nuevo.");
     } finally {
@@ -389,12 +396,12 @@ export default function DiagnosticoContent() {
         {/* Botón a sitio web (sin video en pantalla) */}
         <div className="mt-1">
           <a
-            href="https://www.grupoinforum.com"
+            href={resultUI.ctaHref}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-5 py-3 rounded-2xl bg-[#082a49] text-white text-center"
           >
-            Visita nuestro website
+            {resultUI.ctaLabel}
           </a>
         </div>
       </main>
@@ -631,3 +638,4 @@ export default function DiagnosticoContent() {
     </main>
   );
 }
+
