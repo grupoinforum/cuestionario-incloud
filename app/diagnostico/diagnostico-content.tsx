@@ -1,8 +1,8 @@
 // app/diagnostico/diagnostico-content.tsx
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +170,7 @@ async function submitDiagnostico(payload: any) {
    Componente
    ========================= */
 export default function DiagnosticoContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
 
@@ -202,6 +203,11 @@ export default function DiagnosticoContent() {
     ctaLabel: string;
     ctaHref: string;
   }>(null);
+
+  // 👉 Cuando se construye el resultado, cambia la URL visible a /gracias (sin navegar fuera)
+  useEffect(() => {
+    if (resultUI) router.replace("/gracias");
+  }, [resultUI, router]);
 
   const utms = useMemo(() => {
     const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
@@ -298,7 +304,7 @@ export default function DiagnosticoContent() {
     () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX, [form.country]
   );
   const phoneFull = useMemo(() => {
-    const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
+    the const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
     return `${selectedPrefix}${local ? " " + local : ""}`;
   }, [form.phoneLocal, selectedPrefix]);
 
@@ -365,9 +371,9 @@ export default function DiagnosticoContent() {
           ctaHref: ui.ctaHref,
         });
       } else {
-        // Fallback (por si algo cambia en el backend)
+        // Fallback
         setResultUI({
-          title: qualifies ? "¡Gracias por completar el cuestionario!" : "¡Gracias por completar el cuestionario!",
+          title: "¡Gracias por completar el cuestionario!",
           message: qualifies
             ? "Tu empresa es candidata para un cambio hacia servidores en la nube. Un asesor te contactará."
             : "Según tus respuestas, esta solución no es la adecuada. Visita nuestro sitio para ver otros servicios.",
@@ -393,7 +399,6 @@ export default function DiagnosticoContent() {
         <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
         <p className="whitespace-pre-line text-gray-800 leading-relaxed mb-4">{resultUI.message}</p>
 
-        {/* Botón a sitio web (sin video en pantalla) */}
         <div className="mt-1">
           <a
             href={resultUI.ctaHref}
