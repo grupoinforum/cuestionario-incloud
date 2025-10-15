@@ -301,10 +301,12 @@ export default function DiagnosticoContent() {
 
   /* ===== Teléfono ===== */
   const selectedPrefix = useMemo(
-    () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX, [form.country]
+    () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX,
+    [form.country]
   );
+
   const phoneFull = useMemo(() => {
-    the const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
+    const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
     return `${selectedPrefix}${local ? " " + local : ""}`;
   }, [form.phoneLocal, selectedPrefix]);
 
@@ -371,7 +373,7 @@ export default function DiagnosticoContent() {
           ctaHref: ui.ctaHref,
         });
       } else {
-        // Fallback
+        // Fallback (por si algo cambia en el backend)
         setResultUI({
           title: "¡Gracias por completar el cuestionario!",
           message: qualifies
@@ -399,6 +401,7 @@ export default function DiagnosticoContent() {
         <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
         <p className="whitespace-pre-line text-gray-800 leading-relaxed mb-4">{resultUI.message}</p>
 
+        {/* Botón a sitio web (sin video en pantalla) */}
         <div className="mt-1">
           <a
             href={resultUI.ctaHref}
@@ -643,4 +646,3 @@ export default function DiagnosticoContent() {
     </main>
   );
 }
-
