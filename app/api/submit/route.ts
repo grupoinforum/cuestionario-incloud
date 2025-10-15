@@ -29,7 +29,7 @@ const BREVO_PASS = process.env.BREVO_SMTP_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM || "Inforum <info@inforumsol.com>";
 
 /* ========= Constantes de sitio / video ========= */
-const SITE_URL = "https://www.grupoinforum.com"; // botón a website (correo y pantalla final)
+const SITE_URL = "https://www.grupoinforum.com";
 const YT_VIDEO_ID = "b_J0E39c-vA";
 const YT_WATCH_URL = `https://www.youtube.com/watch?v=${YT_VIDEO_ID}`;
 
@@ -60,14 +60,14 @@ function countryToCode(label?: string): keyof typeof PIPELINES {
   if (["GT", "SV", "HN", "DO", "EC", "PA"].includes(x)) return x as any;
 
   const MAP: Record<string, keyof typeof PIPELINES> = {
-    "GUATEMALA": "GT",
-    "EL SALVADOR": "SV",
-    "HONDURAS": "HN",
-    "PANAMÁ": "PA",
-    "PANAMA": "PA",
+    GUATEMALA: "GT",
+    EL SALVADOR: "SV",
+    HONDURAS: "HN",
+    PANAMÁ: "PA",
+    PANAMA: "PA",
     "REPÚBLICA DOMINICANA": "DO",
     "REPUBLICA DOMINICANA": "DO",
-    "ECUADOR": "EC",
+    ECUADOR: "EC",
   };
   return MAP[x] ?? "GT";
 }
@@ -88,21 +88,23 @@ function absoluteOriginFromReq(req: Request) {
 }
 
 /* ========= Email (Brevo + Nodemailer) ========= */
-function buildEmailBodies(data: Payload, origin: string) {
+function buildEmailBodies(data: Payload, reqOrigin: string) {
   const qualifies = !!data.qualifies;
 
-  // 🔹 Asunto fijo para todos los casos
+  // 📌 Asunto fijo para todos los casos
   const subject = "¡Gracias por completar el cuestionario!";
 
-  // Mensajes solicitados (correo)
-  const lead = qualifies
-    ? "¡Gracias por completar el cuestionario!\nEn base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. Un asesor te estará contactando en un máximo de 48 horas."
-    : "¡Gracias por completar el cuestionario!\nEn base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
+  // 📌 Cuerpo sin repetir el encabezado
+  const copy = qualifies
+    ? "En base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. Un asesor te estará contactando en un máximo de 48 horas."
+    : "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
 
-  // Miniatura para el email (si tienes /public/video.png, se usa como thumbnail clickeable)
-  const THUMB_URL = `${origin}/video.png`;
+  // 📌 Cache-busting para forzar la nueva miniatura
+  const ASSET_VER = process.env.NEXT_PUBLIC_ASSET_VERSION ?? ""; // ej. 20251015
+  const ver = ASSET_VER ? `?v=${encodeURIComponent(ASSET_VER)}` : "";
+  const THUMB_URL = `${reqOrigin}/video.png${ver}`;
 
-  const text = `${lead}
+  const text = `${copy}
 
 Mira el video: ${YT_WATCH_URL}
 
@@ -110,7 +112,7 @@ Visita nuestro sitio web: ${SITE_URL}`.trim();
 
   const html = `
 <div style="font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;line-height:1.55;color:#111">
-  <p style="margin:0 0 14px;white-space:pre-line">${lead}</p>
+  <p style="margin:0 0 14px">${copy}</p>
 
   <a href="${YT_WATCH_URL}" target="_blank" rel="noopener" style="text-decoration:none;border:0;display:inline-block;margin:6px 0 18px">
     <img src="${THUMB_URL}" width="560" style="max-width:100%;height:auto;border:0;display:block;border-radius:12px" alt="Ver video en YouTube" />
@@ -144,7 +146,8 @@ async function sendEmailConfirmation(data: Payload, req: Request) {
     auth: { user: BREVO_USER, pass: BREVO_PASS },
   });
 
-  const { subject, text, html } = buildEmailBodies(data, absoluteOriginFromReq(req));
+  const origin = absoluteOriginFromReq(req);
+  const { subject, text, html } = buildEmailBodies(data, origin);
 
   await transporter.sendMail({
     from: EMAIL_FROM,
@@ -358,7 +361,7 @@ export async function POST(req: Request) {
     // 5) Email (no bloqueante)
     try { await sendEmailConfirmation(data, req); } catch (e) { console.error("[email]", (e as Error).message); }
 
-    // 6) Respuesta para UI final
+    // 6) Respuesta para UI final (frontend)
     const ui = buildResultUI(data);
 
     return NextResponse.json({
@@ -372,3 +375,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || "No se logró enviar" }, { status: 500 });
   }
 }
+
