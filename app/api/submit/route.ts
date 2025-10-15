@@ -59,15 +59,16 @@ function countryToCode(label?: string): keyof typeof PIPELINES {
   const x = label.trim().toUpperCase();
   if (["GT", "SV", "HN", "DO", "EC", "PA"].includes(x)) return x as any;
 
+  // 🔧 IMPORTANTE: claves con espacios/acentos SIEMPRE entre comillas
   const MAP: Record<string, keyof typeof PIPELINES> = {
-    GUATEMALA: "GT",
-    EL SALVADOR: "SV",
-    HONDURAS: "HN",
-    PANAMÁ: "PA",
-    PANAMA: "PA",
+    "GUATEMALA": "GT",
+    "EL SALVADOR": "SV",
+    "HONDURAS": "HN",
+    "PANAMÁ": "PA",
+    "PANAMA": "PA",
     "REPÚBLICA DOMINICANA": "DO",
     "REPUBLICA DOMINICANA": "DO",
-    ECUADOR: "EC",
+    "ECUADOR": "EC",
   };
   return MAP[x] ?? "GT";
 }
@@ -91,15 +92,15 @@ function absoluteOriginFromReq(req: Request) {
 function buildEmailBodies(data: Payload, reqOrigin: string) {
   const qualifies = !!data.qualifies;
 
-  // 📌 Asunto fijo para todos los casos
+  // Asunto fijo
   const subject = "¡Gracias por completar el cuestionario!";
 
-  // 📌 Cuerpo sin repetir el encabezado
+  // Cuerpo sin repetir el encabezado
   const copy = qualifies
     ? "En base a tus respuestas consideramos que tu empresa es candidata para hacer un cambio hacia servidores en la nube. Un asesor te estará contactando en un máximo de 48 horas."
     : "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
 
-  // 📌 Cache-busting para forzar la nueva miniatura
+  // Cache-busting de la miniatura
   const ASSET_VER = process.env.NEXT_PUBLIC_ASSET_VERSION ?? ""; // ej. 20251015
   const ver = ASSET_VER ? `?v=${encodeURIComponent(ASSET_VER)}` : "";
   const THUMB_URL = `${reqOrigin}/video.png${ver}`;
@@ -229,7 +230,7 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
     };
 
     const lines = items.map((a) => {
-      const baseId = a.id.split(":")[0];
+      const baseId = a.id.split(":")[0]; // soporta 'problemas_infra:valor'
       const k = mapLabel[baseId] || baseId;
       const extra = a.extraText ? ` (${a.extraText})` : "";
       return `- ${k}: ${a.value}${extra} [score=${a.score}]`;
@@ -375,4 +376,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || "No se logró enviar" }, { status: 500 });
   }
 }
-
