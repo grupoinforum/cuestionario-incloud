@@ -78,7 +78,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
 
         {/* === LinkedIn Insight Tag === */}
-        <Script
+        {/* === LinkedIn Insight Tag === */}
+<Script
   id="linkedin-insight"
   strategy="afterInteractive"
   dangerouslySetInnerHTML={{
@@ -101,22 +102,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
         s.parentNode.insertBefore(b, s);
       })(window.lintrk);
-    `,
   }}
 />
 <noscript>
-  <img height="1" width="1" style={{ display: "none" }} alt=""
-    src="https://px.ads.linkedin.com/collect/?pid=8112330&fmt=gif" />
+  <img
+    height="1"
+    width="1"
+    style={{ display: "none" }}
+    alt=""
+    src="https://px.ads.linkedin.com/collect/?pid=8112330&fmt=gif"
+  />
 </noscript>
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            alt=""
-            src="https://px.ads.linkedin.com/collect/?pid=8112330&fmt=gif"
-          />
-        </noscript>
       </body>
     </html>
   );
