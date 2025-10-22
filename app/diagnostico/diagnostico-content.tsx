@@ -1,9 +1,7 @@
 // app/diagnostico/diagnostico-content.tsx
 "use client";
-
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-
 export const dynamic = "force-dynamic";
 
 /* =========================
@@ -29,19 +27,19 @@ type Question = QuestionSingle | QuestionMulti;
 
 type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
 
-/* =========================
-   PREGUNTAS (5)
-   ========================= */
+/* ========================= PREGUNTAS (5) ========================= */
 const QUESTIONS: readonly Question[] = [
   {
-    id: "sistema_erp_actual",
-    label: "¿Qué sistema empresarial (ERP) utiliza actualmente su empresa?",
+    id: "usa_sapb1",
+    label: "¿Actualmente su empresa utiliza SAP Business One?",
     type: "single",
     required: true,
     options: [
-      { value: "sap_b1", label: "SAP Business One", score: 2 },
-      { value: "sistema_propio", label: "Sistema Propio", score: 2 },
-      { value: "otro", label: "Otro (especificar)", score: 2, requiresText: true },
+      { value: "onprem", label: "Sí, en servidores locales", score: 2 },
+      { value: "cloud", label: "Sí, pero alojado en la nube", score: 1 },
+      { value: "plan_implementar", label: "No, pero planeamos implementarlo pronto", score: 2 },
+      { value: "otro_erp", label: "No, usamos otro ERP (especificar cuál)", score: 1, requiresText: true },
+      { value: "sin_erp", label: "No usamos ERP", score: 1 },
     ],
   },
   {
@@ -82,20 +80,21 @@ const QUESTIONS: readonly Question[] = [
     ],
   },
   {
-    id: "busca_software_servicio",
-    label: "¿Estás buscando un software o servicio en particular para tu empresa?",
+    id: "objetivo_iaas",
+    label: "¿Qué busca su empresa lograr con una posible migración a IaaS para su ERP?",
     type: "single",
     required: true,
     options: [
-      { value: "erp", label: "ERP", score: 2 },
-      { value: "otros", label: "Otros (especificar)", score: 2, requiresText: true },
+      { value: "estabilidad_rendimiento", label: "Mayor estabilidad y rendimiento del sistema", score: 2 },
+      { value: "seguridad_respaldo", label: "Seguridad y respaldo continuo de la información", score: 2 },
+      { value: "optimizar_costos", label: "Optimización de costos de infraestructura", score: 2 },
+      { value: "delegar_admin", label: "Delegar la administración técnica a expertos", score: 2 },
+      { value: "solo_ver_opciones", label: "Solo quiero ver diferentes opciones", score: 1 },
     ],
   },
 ] as const;
 
-/* =========================
-   Países / Teléfono
-   ========================= */
+/* ========================= Países / Teléfono ========================= */
 const COUNTRIES = [
   { value: "GT", label: "Guatemala" },
   { value: "SV", label: "El Salvador" },
@@ -114,6 +113,7 @@ const COUNTRY_PREFIX: Record<CountryValue, string> = {
   DO: "+1",
   EC: "+593",
 };
+
 const COUNTRY_PHONE_RULES: Record<CountryValue, { min: number; max?: number; note?: string }> = {
   GT: { min: 8 },
   SV: { min: 8 },
@@ -122,23 +122,28 @@ const COUNTRY_PHONE_RULES: Record<CountryValue, { min: number; max?: number; not
   DO: { min: 10 },
   EC: { min: 9, note: "Usa tu número móvil (9 dígitos)" },
 };
+
 const DEFAULT_PREFIX = "+502";
 
-/* =========================
-   Email corporativo
-   ========================= */
+/* ========================= Email corporativo ========================= */
 const FREE_EMAIL_DOMAINS = [
-  "gmail.com", "hotmail.com", "outlook.com", "yahoo.com",
-  "icloud.com", "proton.me", "aol.com", "live.com", "msn.com",
+  "gmail.com",
+  "hotmail.com",
+  "outlook.com",
+  "yahoo.com",
+  "icloud.com",
+  "proton.me",
+  "aol.com",
+  "live.com",
+  "msn.com",
 ];
+
 function isCorporateEmail(email: string) {
   const domain = email.split("@").pop()?.toLowerCase().trim();
   return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
 }
 
-/* =========================
-   Evaluación (Reglas)
-   ========================= */
+/* ========================= Evaluación (Reglas) ========================= */
 function evaluate(finalAnswers: Answer[]) {
   const score1Count = finalAnswers.filter((a) => a.score === 1).length;
   const score2Count = finalAnswers.filter((a) => a.score === 2).length;
@@ -147,9 +152,7 @@ function evaluate(finalAnswers: Answer[]) {
   return { score1Count, qualifies, resultText };
 }
 
-/* =========================
-   API helper
-   ========================= */
+/* ========================= API helper ========================= */
 async function submitDiagnostico(payload: any) {
   const res = await fetch("/api/submit", {
     method: "POST",
@@ -157,13 +160,11 @@ async function submitDiagnostico(payload: any) {
     body: JSON.stringify(payload),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.ok === false) throw new Error(json?.error || `Error ${res.status}`);
+  if (!res.ok || json?.ok === false) throw new Error(json?.error || Error ${res.status});
   return json;
 }
 
-/* =========================
-   Componente
-   ========================= */
+/* ========================= Componente ========================= */
 export default function DiagnosticoContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -210,7 +211,10 @@ export default function DiagnosticoContent() {
   const utms = useMemo(() => {
     const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
     const x: Record<string, string> = {};
-    keys.forEach((k) => { const v = searchParams.get(k); if (v) x[k] = v; });
+    keys.forEach((k) => {
+      const v = searchParams.get(k);
+      if (v) x[k] = v;
+    });
     return x;
   }, [searchParams]);
 
@@ -219,12 +223,12 @@ export default function DiagnosticoContent() {
   const barWidth = progressPct + "%";
 
   /* ===== Helpers selección multi ===== */
-  const isMultiSelected = (qid: string, optValue: string) => !!answers[`${qid}:${optValue}`];
+  const isMultiSelected = (qid: string, optValue: string) => !!answers[${qid}:${optValue}];
   const countMultiSelected = (qid: string) =>
-    Object.keys(answers).filter((k) => k.startsWith(`${qid}:`)).length;
+    Object.keys(answers).filter((k) => k.startsWith(${qid}:)).length;
   const selectedValuesForMulti = (qid: string) =>
     Object.entries(answers)
-      .filter(([k]) => k.startsWith(`${qid}:`))
+      .filter(([k]) => k.startsWith(${qid}:))
       .map(([, v]) => v?.value)
       .filter(Boolean) as string[];
 
@@ -233,7 +237,10 @@ export default function DiagnosticoContent() {
     const q = QUESTIONS.find((qq) => qq.id === qid)!;
     const opt = q.options.find((o) => o.value === optionValue)!;
     if (q.type === "single") {
-      setAnswers((prev) => ({ ...prev, [qid]: { id: qid, value: optionValue, score: opt.score } }));
+      setAnswers((prev) => ({
+        ...prev,
+        [qid]: { id: qid, value: optionValue, score: opt.score }
+      }));
     }
   };
 
@@ -241,17 +248,12 @@ export default function DiagnosticoContent() {
     const q = QUESTIONS.find((qq) => qq.id === qid)! as QuestionMulti | QuestionSingle;
     if (q.type !== "multi") return;
     const opt = q.options.find((o) => o.value === optionValue)!;
-    const key = `${qid}:${optionValue}`;
-
+    const key = ${qid}:${optionValue};
     setAnswers((prev) => {
       const already = !!prev[key];
       const current = countMultiSelected(qid);
-      const limit = typeof (q as QuestionMulti).maxSelections === "number"
-        ? (q as QuestionMulti).maxSelections
-        : 0;
-
+      const limit = typeof (q as QuestionMulti).maxSelections === "number" ? (q as QuestionMulti).maxSelections : 0;
       if (!already && limit > 0 && current >= limit) return prev;
-
       const next = { ...prev };
       if (already) delete next[key];
       else next[key] = { id: key, value: optionValue, score: opt.score };
@@ -262,16 +264,14 @@ export default function DiagnosticoContent() {
   const handleExtraText = (qid: string, text: string) => {
     const q = QUESTIONS.find((qq) => qq.id === qid);
     if (!q) return;
-
     if (q.type === "single") {
       const existing = answers[qid];
       if (!existing) return;
       setAnswers((prev) => ({ ...prev, [qid]: { ...existing, extraText: text } }));
       return;
     }
-
     // multi: texto para opción "otro"
-    const key = `${qid}:otro`;
+    const key = ${qid}:otro;
     if (!answers[key]) return;
     setAnswers((prev) => ({ ...prev, [key]: { ...prev[key]!, extraText: text } }));
   };
@@ -279,7 +279,6 @@ export default function DiagnosticoContent() {
   const shouldShowExtraInput = (qid: string) => {
     const q = QUESTIONS.find((qq) => qq.id === qid);
     if (!q) return false;
-
     if (q.type === "single") {
       const selected = answers[qid]?.value;
       const selectedOpt = q.options.find((o) => o.value === selected) as any;
@@ -294,7 +293,7 @@ export default function DiagnosticoContent() {
       if (!q.required) return true;
       if (q.type === "single") return !!answers[q.id];
       // multi: al menos 1 seleccionado
-      return Object.keys(answers).some((k) => k.startsWith(`${q.id}:`));
+      return Object.keys(answers).some((k) => k.startsWith(${q.id}:));
     });
   }, [answers]);
 
@@ -303,9 +302,10 @@ export default function DiagnosticoContent() {
     () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX,
     [form.country]
   );
+
   const phoneFull = useMemo(() => {
     const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
-    return `${selectedPrefix}${local ? " " + local : ""}`;
+    return ${selectedPrefix}${local ? " " + local : ""};
   }, [form.phoneLocal, selectedPrefix]);
 
   const isPhoneValid = (local: string, country: CountryValue) => {
@@ -319,10 +319,10 @@ export default function DiagnosticoContent() {
   const phoneRequirementText = (() => {
     const rule = COUNTRY_PHONE_RULES[form.country];
     if (!rule) return "Ingresa al menos 8 dígitos del número local.";
-    const minTxt = `${rule.min} dígitos`;
-    const maxTxt = rule.max ? ` (máx. ${rule.max})` : "";
-    const note = rule.note ? ` · ${rule.note}` : "";
-    return `Ingresa ${minTxt}${maxTxt} del número local${note}.`;
+    const minTxt = ${rule.min} dígitos;
+    const maxTxt = rule.max ? (máx. ${rule.max}) : "";
+    const note = rule.note ? · ${rule.note} : "";
+    return Ingresa ${minTxt}${maxTxt} del número local${note}.;
   })();
 
   const canContinueData = useMemo(
@@ -336,18 +336,18 @@ export default function DiagnosticoContent() {
     [form]
   );
 
-  /* =========================
-     Submit
-     ========================= */
+  /* ========================= Submit ========================= */
   const onSubmit = async () => {
     setErrorMsg(null);
-    if (!form.consent) { setErrorMsg("Debes aceptar el consentimiento para continuar."); return; }
+    if (!form.consent) {
+      setErrorMsg("Debes aceptar el consentimiento para continuar.");
+      return;
+    }
     setLoading(true);
     try {
       const finalAnswers = Object.values(answers).filter(Boolean) as Answer[];
       const { score1Count, qualifies, resultText } = evaluate(finalAnswers);
       const countryLabel = COUNTRIES.find((c) => c.value === form.country)?.label || form.country;
-
       const json = await submitDiagnostico({
         name: form.name,
         company: form.company,
@@ -391,19 +391,15 @@ export default function DiagnosticoContent() {
     }
   };
 
-  /* =========================
-     RENDER RESULTADO
-     ========================= */
+  /* ========================= RENDER RESULTADO ========================= */
   if (resultUI) {
     return (
       <main className="max-w-3xl mx-auto p-6">
         <div className="w-full h-2 bg-gray-200 rounded mb-6">
           <div className="h-2 bg-blue-500 rounded" style={{ width: "100%" }} />
         </div>
-
         <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
         <p className="whitespace-pre-line text-gray-800 leading-relaxed mb-4">{resultUI.message}</p>
-
         <div className="mt-1">
           <a
             href={resultUI.ctaHref}
@@ -418,9 +414,7 @@ export default function DiagnosticoContent() {
     );
   }
 
-  /* =========================
-     FORMULARIO (3 PASOS)
-     ========================= */
+  /* ========================= FORMULARIO (3 PASOS) ========================= */
   return (
     <main className="max-w-3xl mx-auto p-6">
       {/* Progreso */}
@@ -445,13 +439,13 @@ export default function DiagnosticoContent() {
                       <div key={o.value} className="flex items-center gap-3">
                         <input
                           type="radio"
-                          id={`${q.id}_${o.value}`}
+                          id={${q.id}_${o.value}}
                           name={q.id}
                           className="cursor-pointer"
                           onChange={() => handleSelect(q.id, o.value)}
                           checked={answers[q.id]?.value === o.value}
                         />
-                        <label htmlFor={`${q.id}_${o.value}`} className="cursor-pointer">
+                        <label htmlFor={${q.id}_${o.value}} className="cursor-pointer">
                           {o.label}
                         </label>
                       </div>
@@ -459,23 +453,21 @@ export default function DiagnosticoContent() {
                   : q.options.map((o) => {
                       const selected = isMultiSelected(q.id, o.value);
                       const limit = (q as QuestionMulti).maxSelections ?? 0;
-                      const reachedLimit =
-                        !selected && limit > 0 && countMultiSelected(q.id) >= limit;
-
+                      const reachedLimit = !selected && limit > 0 && countMultiSelected(q.id) >= limit;
                       return (
                         <div key={o.value} className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            id={`${q.id}_${o.value}`}
+                            id={${q.id}_${o.value}}
                             className="cursor-pointer"
                             onChange={() => handleToggleMulti(q.id, o.value)}
                             checked={selected}
                             disabled={reachedLimit}
                           />
                           <label
-                            htmlFor={`${q.id}_${o.value}`}
-                            className={`cursor-pointer ${reachedLimit ? "opacity-60" : ""}`}
-                            title={reachedLimit ? `Máximo ${limit} opciones` : ""}
+                            htmlFor={${q.id}_${o.value}}
+                            className={cursor-pointer ${reachedLimit ? "opacity-60" : ""}}
+                            title={reachedLimit ? Máximo ${limit} opciones : ""}
                           >
                             {o.label}
                           </label>
@@ -588,21 +580,22 @@ export default function DiagnosticoContent() {
               </p>
             )}
           </div>
-
           <div className="flex items-center justify-between gap-3 pt-2">
             <button onClick={() => setStep(1)} className="px-5 py-3 rounded-2xl border">
               Atrás
             </button>
             <button
               onClick={() => setStep(3)}
-              disabled={!(
-                form.name.trim().length > 1 &&
-                form.company.trim().length > 1 &&
-                form.role.trim().length > 1 &&
-                /.+@.+\..+/.test(form.email) &&
-                isCorporateEmail(form.email) &&
-                isPhoneValid(form.phoneLocal, form.country)
-              )}
+              disabled={
+                !(
+                  form.name.trim().length > 1 &&
+                  form.company.trim().length > 1 &&
+                  form.role.trim().length > 1 &&
+                  /.+@.+\..+/.test(form.email) &&
+                  isCorporateEmail(form.email) &&
+                  isPhoneValid(form.phoneLocal, form.country)
+                )
+              }
               className="px-5 py-3 rounded-2xl shadow bg-blue-600 text-white disabled:opacity-50"
             >
               Siguiente
@@ -657,5 +650,3 @@ export default function DiagnosticoContent() {
     </main>
   );
 }
-
-
