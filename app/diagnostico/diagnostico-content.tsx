@@ -135,19 +135,19 @@ function isCorporateEmail(email: string) {
 }
 
 /* =========================
-   Evaluación (Regla: 2+ preguntas con respuesta 1 ⇒ No califica)
+   Evaluación (Nueva regla: si alguna pregunta queda con score 1 ⇒ NO califica)
    ========================= */
 function evaluate(finalAnswers: Answer[]) {
-  // Agrupar por pregunta base (antes de ":" por si es multi)
-  const baseScores: Record<string, number> = {};
+  // Tomamos el score mínimo por cada pregunta base (antes de ":" para multi)
+  const baseMinScore: Record<string, number> = {};
   for (const a of finalAnswers) {
     const base = a.id.split(":")[0];
-    // Tomar el mínimo score de las opciones seleccionadas para esa pregunta
-    baseScores[base] = Math.min(baseScores[base] ?? 2, a.score);
+    baseMinScore[base] = Math.min(baseMinScore[base] ?? 2, a.score);
   }
+  const score1Count = Object.values(baseMinScore).filter((s) => s === 1).length;
 
-  const score1Count = Object.values(baseScores).filter((s) => s === 1).length;
-  const qualifies = score1Count >= 2 ? false : true;
+  // Si cualquier pregunta tiene score 1 → no califica
+  const qualifies = score1Count > 0 ? false : true;
   const resultText = qualifies ? "Sí califica" : "No califica";
   return { score1Count, qualifies, resultText };
 }
