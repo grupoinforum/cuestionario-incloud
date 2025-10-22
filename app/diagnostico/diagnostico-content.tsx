@@ -1,10 +1,14 @@
 // app/diagnostico/diagnostico-content.tsx
 "use client";
+
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+
 export const dynamic = "force-dynamic";
 
-/* ========================= Tipos de preguntas ========================= */
+/* =========================
+   Tipos de preguntas
+   ========================= */
 type Choice = { value: string; label: string; score: 1 | 2; requiresText?: boolean };
 type QuestionSingle = {
   id: string;
@@ -22,9 +26,12 @@ type QuestionMulti = {
   options: Choice[];
 };
 type Question = QuestionSingle | QuestionMulti;
+
 type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
 
-/* ========================= PREGUNTAS (5) ========================= */
+/* =========================
+   PREGUNTAS (5)
+   ========================= */
 const QUESTIONS: readonly Question[] = [
   {
     id: "usa_sapb1",
@@ -91,7 +98,9 @@ const QUESTIONS: readonly Question[] = [
   },
 ] as const;
 
-/* ========================= Países / Teléfono ========================= */
+/* =========================
+   Países / Teléfono
+   ========================= */
 const COUNTRIES = [
   { value: "GT", label: "Guatemala" },
   { value: "SV", label: "El Salvador" },
@@ -100,7 +109,7 @@ const COUNTRIES = [
   { value: "DO", label: "República Dominicana" },
   { value: "EC", label: "Ecuador" },
 ] as const;
-type CountryValue = (typeof COUNTRIES)[number]["value"];
+type CountryValue = typeof COUNTRIES[number]["value"];
 
 const COUNTRY_PREFIX: Record<CountryValue, string> = {
   GT: "+502",
@@ -110,7 +119,6 @@ const COUNTRY_PREFIX: Record<CountryValue, string> = {
   DO: "+1",
   EC: "+593",
 };
-
 const COUNTRY_PHONE_RULES: Record<CountryValue, { min: number; max?: number; note?: string }> = {
   GT: { min: 8 },
   SV: { min: 8 },
@@ -119,27 +127,23 @@ const COUNTRY_PHONE_RULES: Record<CountryValue, { min: number; max?: number; not
   DO: { min: 10 },
   EC: { min: 9, note: "Usa tu número móvil (9 dígitos)" },
 };
-
 const DEFAULT_PREFIX = "+502";
 
-/* ========================= Email corporativo ========================= */
+/* =========================
+   Email corporativo
+   ========================= */
 const FREE_EMAIL_DOMAINS = [
-  "gmail.com",
-  "hotmail.com",
-  "outlook.com",
-  "yahoo.com",
-  "icloud.com",
-  "proton.me",
-  "aol.com",
-  "live.com",
-  "msn.com",
+  "gmail.com", "hotmail.com", "outlook.com", "yahoo.com",
+  "icloud.com", "proton.me", "aol.com", "live.com", "msn.com",
 ];
 function isCorporateEmail(email: string) {
   const domain = email.split("@").pop()?.toLowerCase().trim();
   return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
 }
 
-/* ========================= Evaluación (Reglas) ========================= */
+/* =========================
+   Evaluación (Reglas)
+   ========================= */
 function evaluate(finalAnswers: Answer[]) {
   const score1Count = finalAnswers.filter((a) => a.score === 1).length;
   const score2Count = finalAnswers.filter((a) => a.score === 2).length;
@@ -148,7 +152,9 @@ function evaluate(finalAnswers: Answer[]) {
   return { score1Count, qualifies, resultText };
 }
 
-/* ========================= API helper ========================= */
+/* =========================
+   API helper
+   ========================= */
 async function submitDiagnostico(payload: any) {
   const res = await fetch("/api/submit", {
     method: "POST",
@@ -160,12 +166,16 @@ async function submitDiagnostico(payload: any) {
   return json;
 }
 
-/* ========================= Componente ========================= */
+/* =========================
+   Componente
+   ========================= */
 export default function DiagnosticoContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
+
   // Para multi: cada selección se guarda como clave "qid:value"
   const [answers, setAnswers] = useState<Record<string, Answer | undefined>>({});
+
   const [form, setForm] = useState<{
     name: string;
     company: string;
@@ -183,9 +193,15 @@ export default function DiagnosticoContent() {
     consent: false,
     phoneLocal: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resultUI, setResultUI] = useState<null | { title: string; message: string; ctaLabel: string; ctaHref: string }>(null);
+  const [resultUI, setResultUI] = useState<null | {
+    title: string;
+    message: string;
+    ctaLabel: string;
+    ctaHref: string;
+  }>(null);
 
   // ✅ SOLO cambia la URL visible a /gracias (sin navegar)
   useEffect(() => {
@@ -199,10 +215,7 @@ export default function DiagnosticoContent() {
   const utms = useMemo(() => {
     const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
     const x: Record<string, string> = {};
-    keys.forEach((k) => {
-      const v = searchParams.get(k);
-      if (v) x[k] = v;
-    });
+    keys.forEach((k) => { const v = searchParams.get(k); if (v) x[k] = v; });
     return x;
   }, [searchParams]);
 
@@ -212,7 +225,8 @@ export default function DiagnosticoContent() {
 
   /* ===== Helpers selección multi ===== */
   const isMultiSelected = (qid: string, optValue: string) => !!answers[`${qid}:${optValue}`];
-  const countMultiSelected = (qid: string) => Object.keys(answers).filter((k) => k.startsWith(`${qid}:`)).length;
+  const countMultiSelected = (qid: string) =>
+    Object.keys(answers).filter((k) => k.startsWith(`${qid}:`)).length;
   const selectedValuesForMulti = (qid: string) =>
     Object.entries(answers)
       .filter(([k]) => k.startsWith(`${qid}:`))
@@ -233,11 +247,16 @@ export default function DiagnosticoContent() {
     if (q.type !== "multi") return;
     const opt = q.options.find((o) => o.value === optionValue)!;
     const key = `${qid}:${optionValue}`;
+
     setAnswers((prev) => {
       const already = !!prev[key];
       const current = countMultiSelected(qid);
-      const limit = typeof (q as QuestionMulti).maxSelections === "number" ? (q as QuestionMulti).maxSelections : 0;
+      const limit = typeof (q as QuestionMulti).maxSelections === "number"
+        ? (q as QuestionMulti).maxSelections
+        : 0;
+
       if (!already && limit > 0 && current >= limit) return prev;
+
       const next = { ...prev };
       if (already) delete next[key];
       else next[key] = { id: key, value: optionValue, score: opt.score };
@@ -248,12 +267,14 @@ export default function DiagnosticoContent() {
   const handleExtraText = (qid: string, text: string) => {
     const q = QUESTIONS.find((qq) => qq.id === qid);
     if (!q) return;
+
     if (q.type === "single") {
       const existing = answers[qid];
       if (!existing) return;
       setAnswers((prev) => ({ ...prev, [qid]: { ...existing, extraText: text } }));
       return;
     }
+
     // multi: texto para opción "otro"
     const key = `${qid}:otro`;
     if (!answers[key]) return;
@@ -263,6 +284,7 @@ export default function DiagnosticoContent() {
   const shouldShowExtraInput = (qid: string) => {
     const q = QUESTIONS.find((qq) => qq.id === qid);
     if (!q) return false;
+
     if (q.type === "single") {
       const selected = answers[qid]?.value;
       const selectedOpt = q.options.find((o) => o.value === selected) as any;
@@ -282,8 +304,10 @@ export default function DiagnosticoContent() {
   }, [answers]);
 
   /* ===== Teléfono ===== */
-  const selectedPrefix = useMemo(() => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX, [form.country]);
-
+  const selectedPrefix = useMemo(
+    () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX,
+    [form.country]
+  );
   const phoneFull = useMemo(() => {
     const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
     return `${selectedPrefix}${local ? " " + local : ""}`;
@@ -317,18 +341,18 @@ export default function DiagnosticoContent() {
     [form]
   );
 
-  /* ========================= Submit ========================= */
+  /* =========================
+     Submit
+     ========================= */
   const onSubmit = async () => {
     setErrorMsg(null);
-    if (!form.consent) {
-      setErrorMsg("Debes aceptar el consentimiento para continuar.");
-      return;
-    }
+    if (!form.consent) { setErrorMsg("Debes aceptar el consentimiento para continuar."); return; }
     setLoading(true);
     try {
       const finalAnswers = Object.values(answers).filter(Boolean) as Answer[];
       const { score1Count, qualifies, resultText } = evaluate(finalAnswers);
       const countryLabel = COUNTRIES.find((c) => c.value === form.country)?.label || form.country;
+
       const json = await submitDiagnostico({
         name: form.name,
         company: form.company,
@@ -343,9 +367,17 @@ export default function DiagnosticoContent() {
       });
 
       // UI desde backend
-      const ui = json?.ui as | { title: string; body: string; ctaLabel: string; ctaHref: string } | undefined;
+      const ui = json?.ui as
+        | { title: string; body: string; ctaLabel: string; ctaHref: string }
+        | undefined;
+
       if (ui) {
-        setResultUI({ title: ui.title, message: ui.body, ctaLabel: ui.ctaLabel, ctaHref: ui.ctaHref });
+        setResultUI({
+          title: ui.title,
+          message: ui.body,
+          ctaLabel: ui.ctaLabel,
+          ctaHref: ui.ctaHref,
+        });
       } else {
         // Fallback
         setResultUI({
@@ -364,15 +396,19 @@ export default function DiagnosticoContent() {
     }
   };
 
-  /* ========================= RENDER RESULTADO ========================= */
+  /* =========================
+     RENDER RESULTADO
+     ========================= */
   if (resultUI) {
     return (
       <main className="max-w-3xl mx-auto p-6">
         <div className="w-full h-2 bg-gray-200 rounded mb-6">
           <div className="h-2 bg-blue-500 rounded" style={{ width: "100%" }} />
         </div>
+
         <h1 className="text-2xl font-semibold mb-3">{resultUI.title}</h1>
         <p className="whitespace-pre-line text-gray-800 leading-relaxed mb-4">{resultUI.message}</p>
+
         <div className="mt-1">
           <a
             href={resultUI.ctaHref}
@@ -387,7 +423,9 @@ export default function DiagnosticoContent() {
     );
   }
 
-  /* ========================= FORMULARIO (3 PASOS) ========================= */
+  /* =========================
+     FORMULARIO (3 PASOS)
+     ========================= */
   return (
     <main className="max-w-3xl mx-auto p-6">
       {/* Progreso */}
@@ -426,7 +464,9 @@ export default function DiagnosticoContent() {
                   : q.options.map((o) => {
                       const selected = isMultiSelected(q.id, o.value);
                       const limit = (q as QuestionMulti).maxSelections ?? 0;
-                      const reachedLimit = !selected && limit > 0 && countMultiSelected(q.id) >= limit;
+                      const reachedLimit =
+                        !selected && limit > 0 && countMultiSelected(q.id) >= limit;
+
                       return (
                         <div key={o.value} className="flex items-center gap-3">
                           <input
@@ -537,7 +577,9 @@ export default function DiagnosticoContent() {
               <input
                 className="w-full rounded-r border px-3 py-2"
                 value={form.phoneLocal}
-                onChange={(e) => setForm({ ...form, phoneLocal: e.target.value.replace(/[^\d]/g, "") })}
+                onChange={(e) =>
+                  setForm({ ...form, phoneLocal: e.target.value.replace(/[^\d]/g, "") })
+                }
                 placeholder="Ingresa tu número (solo dígitos)"
                 inputMode="numeric"
                 pattern="\d*"
@@ -551,22 +593,21 @@ export default function DiagnosticoContent() {
               </p>
             )}
           </div>
+
           <div className="flex items-center justify-between gap-3 pt-2">
             <button onClick={() => setStep(1)} className="px-5 py-3 rounded-2xl border">
               Atrás
             </button>
             <button
               onClick={() => setStep(3)}
-              disabled={
-                !(
-                  form.name.trim().length > 1 &&
-                  form.company.trim().length > 1 &&
-                  form.role.trim().length > 1 &&
-                  /.+@.+\..+/.test(form.email) &&
-                  isCorporateEmail(form.email) &&
-                  isPhoneValid(form.phoneLocal, form.country)
-                )
-              }
+              disabled={!(
+                form.name.trim().length > 1 &&
+                form.company.trim().length > 1 &&
+                form.role.trim().length > 1 &&
+                /.+@.+\..+/.test(form.email) &&
+                isCorporateEmail(form.email) &&
+                isPhoneValid(form.phoneLocal, form.country)
+              )}
               className="px-5 py-3 rounded-2xl shadow bg-blue-600 text-white disabled:opacity-50"
             >
               Siguiente
@@ -603,6 +644,7 @@ export default function DiagnosticoContent() {
               </span>
             </label>
           </div>
+
           <div className="flex items-center justify-between gap-3">
             <button onClick={() => setStep(2)} className="px-5 py-3 rounded-2xl border">
               Atrás
