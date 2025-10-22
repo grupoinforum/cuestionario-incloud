@@ -4,9 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 export const dynamic = "force-dynamic";
 
-/* =========================
-   Tipos de preguntas
-   ========================= */
+/* ========================= Tipos de preguntas ========================= */
 type Choice = { value: string; label: string; score: 1 | 2; requiresText?: boolean };
 type QuestionSingle = {
   id: string;
@@ -24,7 +22,6 @@ type QuestionMulti = {
   options: Choice[];
 };
 type Question = QuestionSingle | QuestionMulti;
-
 type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
 
 /* ========================= PREGUNTAS (5) ========================= */
@@ -103,7 +100,7 @@ const COUNTRIES = [
   { value: "DO", label: "República Dominicana" },
   { value: "EC", label: "Ecuador" },
 ] as const;
-type CountryValue = typeof COUNTRIES[number]["value"];
+type CountryValue = (typeof COUNTRIES)[number]["value"];
 
 const COUNTRY_PREFIX: Record<CountryValue, string> = {
   GT: "+502",
@@ -137,7 +134,6 @@ const FREE_EMAIL_DOMAINS = [
   "live.com",
   "msn.com",
 ];
-
 function isCorporateEmail(email: string) {
   const domain = email.split("@").pop()?.toLowerCase().trim();
   return !!domain && !FREE_EMAIL_DOMAINS.includes(domain);
@@ -160,7 +156,7 @@ async function submitDiagnostico(payload: any) {
     body: JSON.stringify(payload),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.ok === false) throw new Error(json?.error || Error ${res.status});
+  if (!res.ok || json?.ok === false) throw new Error(json?.error || `Error ${res.status}`);
   return json;
 }
 
@@ -168,10 +164,8 @@ async function submitDiagnostico(payload: any) {
 export default function DiagnosticoContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
-
   // Para multi: cada selección se guarda como clave "qid:value"
   const [answers, setAnswers] = useState<Record<string, Answer | undefined>>({});
-
   const [form, setForm] = useState<{
     name: string;
     company: string;
@@ -189,15 +183,9 @@ export default function DiagnosticoContent() {
     consent: false,
     phoneLocal: "",
   });
-
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [resultUI, setResultUI] = useState<null | {
-    title: string;
-    message: string;
-    ctaLabel: string;
-    ctaHref: string;
-  }>(null);
+  const [resultUI, setResultUI] = useState<null | { title: string; message: string; ctaLabel: string; ctaHref: string }>(null);
 
   // ✅ SOLO cambia la URL visible a /gracias (sin navegar)
   useEffect(() => {
@@ -223,12 +211,11 @@ export default function DiagnosticoContent() {
   const barWidth = progressPct + "%";
 
   /* ===== Helpers selección multi ===== */
-  const isMultiSelected = (qid: string, optValue: string) => !!answers[${qid}:${optValue}];
-  const countMultiSelected = (qid: string) =>
-    Object.keys(answers).filter((k) => k.startsWith(${qid}:)).length;
+  const isMultiSelected = (qid: string, optValue: string) => !!answers[`${qid}:${optValue}`];
+  const countMultiSelected = (qid: string) => Object.keys(answers).filter((k) => k.startsWith(`${qid}:`)).length;
   const selectedValuesForMulti = (qid: string) =>
     Object.entries(answers)
-      .filter(([k]) => k.startsWith(${qid}:))
+      .filter(([k]) => k.startsWith(`${qid}:`))
       .map(([, v]) => v?.value)
       .filter(Boolean) as string[];
 
@@ -237,10 +224,7 @@ export default function DiagnosticoContent() {
     const q = QUESTIONS.find((qq) => qq.id === qid)!;
     const opt = q.options.find((o) => o.value === optionValue)!;
     if (q.type === "single") {
-      setAnswers((prev) => ({
-        ...prev,
-        [qid]: { id: qid, value: optionValue, score: opt.score }
-      }));
+      setAnswers((prev) => ({ ...prev, [qid]: { id: qid, value: optionValue, score: opt.score } }));
     }
   };
 
@@ -248,7 +232,7 @@ export default function DiagnosticoContent() {
     const q = QUESTIONS.find((qq) => qq.id === qid)! as QuestionMulti | QuestionSingle;
     if (q.type !== "multi") return;
     const opt = q.options.find((o) => o.value === optionValue)!;
-    const key = ${qid}:${optionValue};
+    const key = `${qid}:${optionValue}`;
     setAnswers((prev) => {
       const already = !!prev[key];
       const current = countMultiSelected(qid);
@@ -271,7 +255,7 @@ export default function DiagnosticoContent() {
       return;
     }
     // multi: texto para opción "otro"
-    const key = ${qid}:otro;
+    const key = `${qid}:otro`;
     if (!answers[key]) return;
     setAnswers((prev) => ({ ...prev, [key]: { ...prev[key]!, extraText: text } }));
   };
@@ -293,19 +277,16 @@ export default function DiagnosticoContent() {
       if (!q.required) return true;
       if (q.type === "single") return !!answers[q.id];
       // multi: al menos 1 seleccionado
-      return Object.keys(answers).some((k) => k.startsWith(${q.id}:));
+      return Object.keys(answers).some((k) => k.startsWith(`${q.id}:`));
     });
   }, [answers]);
 
   /* ===== Teléfono ===== */
-  const selectedPrefix = useMemo(
-    () => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX,
-    [form.country]
-  );
+  const selectedPrefix = useMemo(() => COUNTRY_PREFIX[form.country] ?? DEFAULT_PREFIX, [form.country]);
 
   const phoneFull = useMemo(() => {
     const local = (form.phoneLocal || "").replace(/[^\d]/g, "");
-    return ${selectedPrefix}${local ? " " + local : ""};
+    return `${selectedPrefix}${local ? " " + local : ""}`;
   }, [form.phoneLocal, selectedPrefix]);
 
   const isPhoneValid = (local: string, country: CountryValue) => {
@@ -319,10 +300,10 @@ export default function DiagnosticoContent() {
   const phoneRequirementText = (() => {
     const rule = COUNTRY_PHONE_RULES[form.country];
     if (!rule) return "Ingresa al menos 8 dígitos del número local.";
-    const minTxt = ${rule.min} dígitos;
-    const maxTxt = rule.max ? (máx. ${rule.max}) : "";
-    const note = rule.note ? · ${rule.note} : "";
-    return Ingresa ${minTxt}${maxTxt} del número local${note}.;
+    const minTxt = `${rule.min} dígitos`;
+    const maxTxt = rule.max ? ` (máx. ${rule.max})` : "";
+    const note = rule.note ? ` · ${rule.note}` : "";
+    return `Ingresa ${minTxt}${maxTxt} del número local${note}.`;
   })();
 
   const canContinueData = useMemo(
@@ -362,17 +343,9 @@ export default function DiagnosticoContent() {
       });
 
       // UI desde backend
-      const ui = json?.ui as
-        | { title: string; body: string; ctaLabel: string; ctaHref: string }
-        | undefined;
-
+      const ui = json?.ui as | { title: string; body: string; ctaLabel: string; ctaHref: string } | undefined;
       if (ui) {
-        setResultUI({
-          title: ui.title,
-          message: ui.body,
-          ctaLabel: ui.ctaLabel,
-          ctaHref: ui.ctaHref,
-        });
+        setResultUI({ title: ui.title, message: ui.body, ctaLabel: ui.ctaLabel, ctaHref: ui.ctaHref });
       } else {
         // Fallback
         setResultUI({
@@ -439,13 +412,13 @@ export default function DiagnosticoContent() {
                       <div key={o.value} className="flex items-center gap-3">
                         <input
                           type="radio"
-                          id={${q.id}_${o.value}}
+                          id={`${q.id}_${o.value}`}
                           name={q.id}
                           className="cursor-pointer"
                           onChange={() => handleSelect(q.id, o.value)}
                           checked={answers[q.id]?.value === o.value}
                         />
-                        <label htmlFor={${q.id}_${o.value}} className="cursor-pointer">
+                        <label htmlFor={`${q.id}_${o.value}`} className="cursor-pointer">
                           {o.label}
                         </label>
                       </div>
@@ -458,16 +431,16 @@ export default function DiagnosticoContent() {
                         <div key={o.value} className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            id={${q.id}_${o.value}}
+                            id={`${q.id}_${o.value}`}
                             className="cursor-pointer"
                             onChange={() => handleToggleMulti(q.id, o.value)}
                             checked={selected}
                             disabled={reachedLimit}
                           />
                           <label
-                            htmlFor={${q.id}_${o.value}}
-                            className={cursor-pointer ${reachedLimit ? "opacity-60" : ""}}
-                            title={reachedLimit ? Máximo ${limit} opciones : ""}
+                            htmlFor={`${q.id}_${o.value}`}
+                            className={`cursor-pointer ${reachedLimit ? "opacity-60" : ""}`}
+                            title={reachedLimit ? `Máximo ${limit} opciones` : ""}
                           >
                             {o.label}
                           </label>
@@ -564,9 +537,7 @@ export default function DiagnosticoContent() {
               <input
                 className="w-full rounded-r border px-3 py-2"
                 value={form.phoneLocal}
-                onChange={(e) =>
-                  setForm({ ...form, phoneLocal: e.target.value.replace(/[^\d]/g, "") })
-                }
+                onChange={(e) => setForm({ ...form, phoneLocal: e.target.value.replace(/[^\d]/g, "") })}
                 placeholder="Ingresa tu número (solo dígitos)"
                 inputMode="numeric"
                 pattern="\d*"
@@ -632,7 +603,6 @@ export default function DiagnosticoContent() {
               </span>
             </label>
           </div>
-
           <div className="flex items-center justify-between gap-3">
             <button onClick={() => setStep(2)} className="px-5 py-3 rounded-2xl border">
               Atrás
