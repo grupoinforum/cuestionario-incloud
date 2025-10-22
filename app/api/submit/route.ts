@@ -23,6 +23,7 @@ type Payload = {
 const PD_DOMAIN = process.env.PIPEDRIVE_DOMAIN!;
 const PD_API = process.env.PIPEDRIVE_API_KEY!;
 const PD_PERSON_ROLE_FIELD = process.env.PD_PERSON_ROLE_FIELD;
+
 const BREVO_USER = process.env.BREVO_SMTP_USER;
 const BREVO_PASS = process.env.BREVO_SMTP_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM || "Inforum <info@inforumsol.com>";
@@ -30,7 +31,7 @@ const EMAIL_FROM = process.env.EMAIL_FROM || "Inforum <info@inforumsol.com>";
 /* ========= Constantes de sitio / video ========= */
 const SITE_URL = "https://www.grupoinforum.com";
 const YT_VIDEO_ID = "b_J0E39c-vA";
-const YT_WATCH_URL = https://www.youtube.com/watch?v=${YT_VIDEO_ID};
+const YT_WATCH_URL = `https://www.youtube.com/watch?v=${YT_VIDEO_ID}`;
 
 /* ========= Pipedrive: pipelines por país ========= */
 const PIPELINES = {
@@ -57,6 +58,7 @@ function countryToCode(label?: string): keyof typeof PIPELINES {
   if (!label) return "GT";
   const x = label.trim().toUpperCase();
   if (["GT", "SV", "HN", "DO", "EC", "PA"].includes(x)) return x as any;
+
   const MAP: Record<string, keyof typeof PIPELINES> = {
     "GUATEMALA": "GT",
     "EL SALVADOR": "SV",
@@ -71,22 +73,18 @@ function countryToCode(label?: string): keyof typeof PIPELINES {
 }
 
 async function pd(path: string, init?: RequestInit) {
-  const url = https://${PD_DOMAIN}.pipedrive.com/api/v1${path}${path.includes("?") ? "&" : "?"}api_token=${PD_API};
+  const url = `https://${PD_DOMAIN}.pipedrive.com/api/v1${path}${path.includes("?") ? "&" : "?"}api_token=${PD_API}`;
   const res = await fetch(url, init);
   const text = await res.text();
-  if (!res.ok) throw new Error(Pipedrive ${path} → ${res.status} ${text});
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text as any;
-  }
+  if (!res.ok) throw new Error(`Pipedrive ${path} → ${res.status} ${text}`);
+  try { return JSON.parse(text); } catch { return text as any; }
 }
 
 function absoluteOriginFromReq(req: Request) {
   const proto = (req.headers.get("x-forwarded-proto") || "https").split(",")[0].trim();
   const host = (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0].trim();
   if (!host) return "https://cuestionario-incloud.vercel.app";
-  return ${proto}://${host};
+  return `${proto}://${host}`;
 }
 
 /* ========= Email (Brevo + Nodemailer) ========= */
@@ -102,28 +100,34 @@ function buildEmailBodies(data: Payload, reqOrigin: string) {
     : "En base a tus respuestas vemos que esta solución no es la adecuada para tu empresa. De igual forma te invitamos a visitar nuestra página web para que veas qué otros servicios podemos ofrecerte.";
 
   // Imagen nueva
-  const THUMB_URL = ${reqOrigin}/video-econsa.png;
+  const THUMB_URL = `${reqOrigin}/video-econsa.png`;
 
-  const text = ${copy}
+  const text = `${copy}
+
 Mira el video: ${YT_WATCH_URL}
-Visita nuestro sitio web: ${SITE_URL}.trim();
 
-  const html = <div style="font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;line-height:1.55;color:#111">
+Visita nuestro sitio web: ${SITE_URL}`.trim();
+
+  const html = `
+<div style="font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;line-height:1.55;color:#111">
   <p style="margin:0 0 14px">${copy}</p>
+
   <a href="${YT_WATCH_URL}" target="_blank" rel="noopener" style="text-decoration:none;border:0;display:inline-block;margin:6px 0 18px">
     <img src="${THUMB_URL}" width="560" style="max-width:100%;height:auto;border:0;display:block;border-radius:12px" alt="Ver video en YouTube" />
   </a>
+
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0">
     <tr>
       <td bgcolor="#1D4ED8" style="border-radius:10px">
-        <a href="${SITE_URL}" target="_blank" rel="noopener" style="font-size:16px;line-height:16px;font-weight:600;color:#ffffff;text-decoration:none;padding:12px 18px;display:inline-block">
+        <a href="${SITE_URL}" target="_blank" rel="noopener"
+           style="font-size:16px;line-height:16px;font-weight:600;color:#ffffff;text-decoration:none;padding:12px 18px;display:inline-block">
           Visita nuestro website
         </a>
       </td>
     </tr>
   </table>
 </div>
-.trim();
+`.trim();
 
   return { subject, text, html };
 }
@@ -150,7 +154,7 @@ async function sendEmailConfirmation(data: Payload, req: Request) {
     text,
     html,
   });
-  console.log(✅ Email enviado a ${data.email});
+  console.log(`✅ Email enviado a ${data.email}`);
 }
 
 /* ========= Persona en Pipedrive ========= */
@@ -160,9 +164,8 @@ async function upsertPersonWithPhoneAndRole(data: Payload) {
   const role = (data.role || "").trim();
 
   let personId: number | null = null;
-
   try {
-    const search = await pd(/persons/search?term=${encodeURIComponent(email)}&fields=email&exact_match=true);
+    const search = await pd(`/persons/search?term=${encodeURIComponent(email)}&fields=email&exact_match=true`);
     const item = (search as any)?.data?.items?.[0];
     if (item?.item?.id) personId = item.item.id;
   } catch (e) {
@@ -178,7 +181,7 @@ async function upsertPersonWithPhoneAndRole(data: Payload) {
 
   if (personId) {
     try {
-      await pd(/persons/${personId}, {
+      await pd(`/persons/${personId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildBody()),
@@ -197,7 +200,7 @@ async function upsertPersonWithPhoneAndRole(data: Payload) {
     if (phone) createBody.phone = [{ value: phone, primary: true, label: "work" }];
     if (PD_PERSON_ROLE_FIELD && role) createBody[PD_PERSON_ROLE_FIELD] = role;
 
-    const created = await pd(/persons, {
+    const created = await pd(`/persons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(createBody),
@@ -226,8 +229,8 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
     const lines = items.map((a) => {
       const baseId = a.id.split(":")[0];
       const k = mapLabel[baseId] || baseId;
-      const extra = a.extraText ? (${a.extraText}) : "";
-      return - ${k}: ${a.value}${extra} [score=${a.score}];
+      const extra = a.extraText ? ` (${a.extraText})` : "";
+      return `- ${k}: ${a.value}${extra} [score=${a.score}]`;
     });
 
     return lines.join("\n");
@@ -263,7 +266,6 @@ function buildResultUI(data: Payload) {
 export async function POST(req: Request) {
   try {
     const data = (await req.json()) as Payload;
-
     if (!data?.name || !data?.email) {
       return NextResponse.json({ ok: false, error: "Faltan nombre o email" }, { status: 400 });
     }
@@ -279,13 +281,13 @@ export async function POST(req: Request) {
     let orgId: number | undefined;
     if (data.company) {
       try {
-        const s = await pd(/organizations/search?term=${encodeURIComponent(data.company)}&exact_match=true);
+        const s = await pd(`/organizations/search?term=${encodeURIComponent(data.company)}&exact_match=true`);
         const it = (s as any)?.data?.items?.[0];
         orgId = it?.item?.id;
       } catch {}
       if (!orgId) {
         try {
-          const o = await pd(/organizations, {
+          const o = await pd(`/organizations`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: data.company }),
@@ -298,11 +300,11 @@ export async function POST(req: Request) {
     }
 
     // Deal
-    const deal = await pd(/deals, {
+    const deal = await pd(`/deals`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: Diagnóstico de Infraestructura de Servidores – ${data.name},
+        title: `Diagnóstico de Infraestructura de Servidores – ${data.name}`,
         person_id: personId!,
         org_id: orgId,
         pipeline_id,
@@ -320,28 +322,17 @@ export async function POST(req: Request) {
         score2Count = (data.answers.items as Answer[]).filter((a) => a.score === 2).length;
       }
       const answersBrief = briefAnswersSummary(data.answers);
-
       const content =
-Formulario diagnóstico (InCloud)
- + • Nombre: ${data.name}
- + (data.company ? • Empresa: ${data.company}
- : "")
- + (data.role ? • Cargo: ${data.role}
- : "")
- + • Email: ${data.email}
- + (data.country ? • País: ${data.country}
- : "")
- + (data.phone ? • Teléfono: ${data.phone}
- : "")
- + (data.qualifies ? "• Resultado: ✅ Sí califica
-" : "• Resultado: ❌ No califica
-")
- + (answersBrief ? 
-Resumen:
-${answersBrief}
- : "");
-
-      await pd(/notes, {
+        `Formulario diagnóstico (InCloud)\n` +
+        `• Nombre: ${data.name}\n` +
+        (data.company ? `• Empresa: ${data.company}\n` : "") +
+        (data.role ? `• Cargo: ${data.role}\n` : "") +
+        `• Email: ${data.email}\n` +
+        (data.country ? `• País: ${data.country}\n` : "") +
+        (data.phone ? `• Teléfono: ${data.phone}\n` : "") +
+        (data.qualifies ? "• Resultado: ✅ Sí califica\n" : "• Resultado: ❌ No califica\n") +
+        (answersBrief ? `\nResumen:\n${answersBrief}\n` : "");
+      await pd(`/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content, deal_id: dealId, person_id: personId!, org_id: orgId }),
@@ -351,16 +342,16 @@ ${answersBrief}
     }
 
     // Email
-    try {
-      await sendEmailConfirmation(data, req);
-    } catch (e) {
-      console.error("[email]", (e as Error).message);
-    }
+    try { await sendEmailConfirmation(data, req); } catch (e) { console.error("[email]", (e as Error).message); }
 
     // UI final
     const ui = buildResultUI(data);
 
-    return NextResponse.json({ ok: true, qualifies: !!data.qualifies, ui });
+    return NextResponse.json({
+      ok: true,
+      qualifies: !!data.qualifies,
+      ui,
+    });
   } catch (e: any) {
     console.error("[/api/submit] Error:", e?.message || e);
     return NextResponse.json({ ok: false, error: e?.message || "No se logró enviar" }, { status: 500 });
