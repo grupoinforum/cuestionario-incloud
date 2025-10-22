@@ -30,7 +30,7 @@ type Question = QuestionSingle | QuestionMulti;
 type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
 
 /* =========================
-   PREGUNTAS (5)
+   PREGUNTAS (5) – Orden y valores solicitados
    ========================= */
 const QUESTIONS: readonly Question[] = [
   {
@@ -39,11 +39,8 @@ const QUESTIONS: readonly Question[] = [
     type: "single",
     required: true,
     options: [
-      { value: "onprem", label: "Sí, en servidores locales", score: 2 },
-      { value: "cloud", label: "Sí, pero alojado en la nube", score: 1 },
-      { value: "plan_implementar", label: "No, pero planeamos implementarlo pronto", score: 2 },
-      { value: "otro_erp", label: "No, usamos otro ERP (especificar cuál)", score: 1, requiresText: true },
-      { value: "sin_erp", label: "No usamos ERP", score: 1 },
+      { value: "si", label: "Sí", score: 2 },
+      { value: "no", label: "No", score: 1 },
     ],
   },
   {
@@ -53,8 +50,7 @@ const QUESTIONS: readonly Question[] = [
     required: true,
     options: [
       { value: "ti_interno", label: "Internamente con equipo de TI propio", score: 2 },
-      { value: "proveedor_externo", label: "Proveedor externo", score: 1 },
-      { value: "partner_sapb1", label: "Partner SAP Business One", score: 1 },
+      { value: "proveedor_tercerizado", label: "Proveedor tercerizado", score: 1 },
     ],
   },
   {
@@ -68,7 +64,6 @@ const QUESTIONS: readonly Question[] = [
       { value: "capacidad_rendimiento", label: "Falta de capacidad o rendimiento", score: 2 },
       { value: "riesgo_datos_respaldo", label: "Riesgo de pérdida de datos o falta de respaldo", score: 2 },
       { value: "costos_altos", label: "Costos altos de mantenimiento o licencias", score: 2 },
-      { value: "ninguno", label: "Ninguno por ahora", score: 1 },
       { value: "otro", label: "Otro (especificar)", score: 2, requiresText: true },
     ],
   },
@@ -78,8 +73,7 @@ const QUESTIONS: readonly Question[] = [
     type: "single",
     required: true,
     options: [
-      { value: "onprem_fisico", label: "En un servidor físico dentro de la empresa", score: 2 },
-      { value: "dc_local", label: "En un servidor virtual o data center local", score: 2 },
+      { value: "local_o_dc", label: "En un servidor físico o data center local", score: 2 },
       { value: "nube", label: "En servidores nube", score: 1 },
     ],
   },
@@ -93,7 +87,6 @@ const QUESTIONS: readonly Question[] = [
       { value: "seguridad_respaldo", label: "Seguridad y respaldo continuo de la información", score: 2 },
       { value: "optimizar_costos", label: "Optimización de costos de infraestructura", score: 2 },
       { value: "delegar_admin", label: "Delegar la administración técnica a expertos", score: 2 },
-      { value: "solo_ver_opciones", label: "Solo quiero ver diferentes opciones", score: 1 },
     ],
   },
 ] as const;
@@ -142,12 +135,19 @@ function isCorporateEmail(email: string) {
 }
 
 /* =========================
-   Evaluación (Reglas)
+   Evaluación (Regla: 2+ preguntas con respuesta 1 ⇒ No califica)
    ========================= */
 function evaluate(finalAnswers: Answer[]) {
-  const score1Count = finalAnswers.filter((a) => a.score === 1).length;
-  const score2Count = finalAnswers.filter((a) => a.score === 2).length;
-  const qualifies = score2Count >= 3 ? true : score1Count >= 3 ? false : false;
+  // Agrupar por pregunta base (antes de ":" por si es multi)
+  const baseScores: Record<string, number> = {};
+  for (const a of finalAnswers) {
+    const base = a.id.split(":")[0];
+    // Tomar el mínimo score de las opciones seleccionadas para esa pregunta
+    baseScores[base] = Math.min(baseScores[base] ?? 2, a.score);
+  }
+
+  const score1Count = Object.values(baseScores).filter((s) => s === 1).length;
+  const qualifies = score1Count >= 2 ? false : true;
   const resultText = qualifies ? "Sí califica" : "No califica";
   return { score1Count, qualifies, resultText };
 }
