@@ -219,11 +219,11 @@ function briefAnswersSummary(answers?: Payload["answers"]) {
     if (!Array.isArray(items) || !items.length) return "";
 
     const mapLabel: Record<string, string> = {
-      usa_sapb1: "Uso de SAP Business One",
+      sistema_erp_actual: "ERP actual",
       admin_servidores: "Administración de servidores",
       problemas_infra: "Problemas de infraestructura",
       donde_erp: "Ubicación actual del ERP",
-      objetivo_iaas: "Objetivo de migración a IaaS",
+      busca_software_servicio: "Interés: software/servicio",
     };
 
     const lines = items.map((a) => {
