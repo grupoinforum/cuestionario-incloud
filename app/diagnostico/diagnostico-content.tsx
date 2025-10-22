@@ -34,16 +34,14 @@ type Answer = { id: string; value: string; score: 1 | 2; extraText?: string };
    ========================= */
 const QUESTIONS: readonly Question[] = [
   {
-    id: "usa_sapb1",
-    label: "¿Actualmente su empresa utiliza SAP Business One?",
+    id: "sistema_erp_actual",
+    label: "¿Qué sistema empresarial (ERP) utiliza actualmente su empresa?",
     type: "single",
     required: true,
     options: [
-      { value: "onprem", label: "Sí, en servidores locales", score: 2 },
-      { value: "cloud", label: "Sí, pero alojado en la nube", score: 1 },
-      { value: "plan_implementar", label: "No, pero planeamos implementarlo pronto", score: 2 },
-      { value: "otro_erp", label: "No, usamos otro ERP (especificar cuál)", score: 1, requiresText: true },
-      { value: "sin_erp", label: "No usamos ERP", score: 1 },
+      { value: "sap_b1", label: "SAP Business One", score: 2 },
+      { value: "sistema_propio", label: "Sistema Propio", score: 2 },
+      { value: "otro", label: "Otro (especificar)", score: 2, requiresText: true },
     ],
   },
   {
@@ -84,16 +82,13 @@ const QUESTIONS: readonly Question[] = [
     ],
   },
   {
-    id: "objetivo_iaas",
-    label: "¿Qué busca su empresa lograr con una posible migración a IaaS para su ERP?",
+    id: "busca_software_servicio",
+    label: "¿Estás buscando un software o servicio en particular para tu empresa?",
     type: "single",
     required: true,
     options: [
-      { value: "estabilidad_rendimiento", label: "Mayor estabilidad y rendimiento del sistema", score: 2 },
-      { value: "seguridad_respaldo", label: "Seguridad y respaldo continuo de la información", score: 2 },
-      { value: "optimizar_costos", label: "Optimización de costos de infraestructura", score: 2 },
-      { value: "delegar_admin", label: "Delegar la administración técnica a expertos", score: 2 },
-      { value: "solo_ver_opciones", label: "Solo quiero ver diferentes opciones", score: 1 },
+      { value: "erp", label: "ERP", score: 2 },
+      { value: "otros", label: "Otros (especificar)", score: 2, requiresText: true },
     ],
   },
 ] as const;
@@ -662,4 +657,5 @@ export default function DiagnosticoContent() {
     </main>
   );
 }
+
 
